@@ -4,11 +4,11 @@
 
 import re
 
-f = open('weibo_predict_data.txt')
+f = open('first100user.txt')
 
 #output = open('predict.txt', 'w')
 
-output = open('predict_uid.txt', 'w')
+output = open('predict_100.txt', 'w')
 
 t = re.compile('\t')
 
@@ -18,5 +18,5 @@ for line in f:
     data = t.split(line)
     del data[2:]
     data.append('0,0,0')
-    output.write(' '.join(data))
-    output.write('\n')'''
+    output.write('\t'.join(data))
+    output.write('\n')

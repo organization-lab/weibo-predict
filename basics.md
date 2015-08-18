@@ -12,6 +12,10 @@ in both: 23604
 
 only in predict data: 1214
 
+## 20150818
+
+first 100 user & first 1000 user: len(content) added.
+
 ---
 
 note:

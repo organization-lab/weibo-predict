@@ -4,23 +4,35 @@
 
 import re
 
-train_data = open('train_a.txt')
-train_only = open('train_b.txt')
+train_data = open('weibo_train_data.txt')
+#train_only = open('train_b.txt')
 
-#output = open('predict.txt', 'w')
+output = open('first1000user.txt', 'w')
 
-set_a = open('train_a2.txt', 'w')
-set_b = open('train_b2.txt', 'w')
+#set_a = open('train_a2.txt', 'w')
+#set_b = open('train_b2.txt', 'w')
 
 t = re.compile('\t')
 
 #print(t.split(f.readline()))
 
-train_data = train_data.readlines()
-train_only = train_only.readlines()
+num_user = 1000
+uid0 = ''
+i = 0
 
-print(len(train_data))
-print(len(train_only))
+while i < num_user: # write number of users as demand in num_user 
+    line = train_data.readline()
+    uid, mid, time, forward_count, comment_count, like_count, content = t.split(line)
+
+    if uid != uid0:
+        i += 1
+        uid0 = uid
+        if i >= num_user:
+            break
+
+    output.write('\t'.join([uid, mid, time, forward_count, comment_count, like_count, str(len(content)), content]))
+    
+
 
 '''
 for i in range(0, len(train_data)):
