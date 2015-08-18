@@ -2,9 +2,19 @@
 
 total uid: 46885 (= 45671+1214 = 24818+22067)
 
-uid in train data: 45671
+--
+
+unique uid in train data: 45671
+
+lines(posts): 1626750
+
+--
 
 uid need to predict: 24818
+
+lines(posts): 275331
+
+--
 
 uid only in train data: 22067
 
@@ -12,9 +22,32 @@ in both: 23604
 
 only in predict data: 1214
 
+---
+
+重复的 uid 2个:
+
+- 07fc721342df1a4c1992560b582992f8 出现在首尾
+- 83b76a297161308e937ab9a7d71e9309 出现在 22807, 27376
+
 ## 20150818
 
 first 100 user & first 1000 user: len(content) added.
+
+---
+
+first 100 user:
+
+000: 0.469
+average: 0.446
+
+---
+
+first 1000 user:
+
+000: 0.396
+average: 0.456
+
+need more test (larger database)
 
 ---
 

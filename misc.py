@@ -4,14 +4,17 @@
 # misc function for i/o of basic data
 
 import re
+import math
 
-filein = open('first1000user.txt')
+#filein = open('predict_000.txt')
 #output = open('predict.txt', 'w')
-#fileout = open('predict_1000_000.txt', 'w')
+#fileout = open('predict_1000_average.txt', 'w')
 
-predict = open('predict_1000_000.txt') 
+predict = open('predict/predict_1000_average.txt') 
+real = open('predict/predict_1000_real.txt') 
 
-real = open('predict_1000_real.txt') 
+#predict_file = open('first1000user.txt')
+#predict_data = open('uid_average.txt')
 
 def predict_000(filein, fileout):
     """保留前两列内容, 写下000
@@ -27,6 +30,35 @@ def predict_000(filein, fileout):
         fileout.write('\t'.join(data))
         fileout.write('\n')
 
+def predict_average(predict_file, predict_data, fileout):
+    """用 predict_data 的数据预测 predict_file
+
+    i: predict_file, 暂时用 000 data
+    p: 把 000 换成 average
+    """
+
+    t = re.compile('\t')
+    predict_data = predict_data.readlines()
+
+    dataset = {}
+
+    for line in predict_data:
+        uid, num_post, f,c,l = t.split(line)
+        f = round(float(f))
+        c = round(float(c))
+        l = round(float(l))
+        dataset[uid] = '{},{},{}'.format(f, c, l)
+    
+    i = 0
+    for line in predict_file:
+        uid, mid = t.split(line)[0], t.split(line)[1]
+
+        if uid in dataset:
+            fileout.write(uid + '\t' + mid + '\t' + dataset[uid] + '\n')
+        else:
+            fileout.write(uid + '\t' + mid + '\t' + '0,0,0' + '\n')
+
+
 def get_data_and_write(filein, fileout):
     """用 readline 逐行读入数据并 unpack
 
@@ -35,7 +67,8 @@ def get_data_and_write(filein, fileout):
     t = re.compile('\t')
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, time, forward_count,
-         comment_count, like_count, num_content, content) = t.split(line)
+        comment_count, like_count, num_content, content) = t.split(line)
+
         fileout.write(uid + '\t' + mid + '\t')
         fileout.write(forward_count + ',' + 
                       comment_count + ',' + 
@@ -46,11 +79,10 @@ def get_data_and_write(filein, fileout):
             str(len(content)), content]))'''
 
 def precision(predict, real):
-    """
+    """实现计算精度的算法
 
     http://tianchi.aliyun.com/competition/information.htm?spm=0.0.0.0.31CeDM&raceId=5
     """
-    import math
 
     find = re.compile('\d+,\d+,\d+')
     split = re.compile(',')
@@ -90,22 +122,60 @@ def get_data_user(filein, fileout, num_user):
     t = re.compile('\t')
 
     uid0 = ''
+    num_post = 0
+    sum_f = 0
+    sum_c = 0
+    sum_l = 0
     i = 0
+    j = 0
 
     while i < num_user: # write number of users as demand in num_user 
-        line = train_data.readline()
-        uid, mid, time, forward_count, comment_count, like_count, content = t.split(line)
+        line = filein.readline()
+        j += 1
+        if line:
+            uid, mid, time, forward_count, comment_count, like_count, content = t.split(line)
+        else:
+            fileout.write('\t'.join([uid0, str(num_post), str(sum_f/num_post),
+                                         str(sum_c/num_post), str(sum_l/num_post)]))
+            fileout.write('\n')
+            print(j)
+            return
 
-        if uid != uid0:
+        if uid != uid0: # new uid
+            if uid0:
+                fileout.write('\t'.join([uid0, str(num_post), str(sum_f/num_post),
+                                         str(sum_c/num_post), str(sum_l/num_post)]))
+                fileout.write('\n')
             i += 1
+            if i % 1000 == 0:
+                print(i)
             uid0 = uid
-            if i >= num_user:
-                break
+            num_post = 0
+            sum_f = 0
+            sum_c = 0
+            sum_l = 0
+            num_post += 1
+            sum_f += int(forward_count)
+            sum_c += int(comment_count)
+            sum_l += int(like_count)
 
-        fileout.write('\t'.join([uid, mid, time, forward_count, comment_count, like_count, str(len(content)), content]))
+            if i >= num_user:
+                print(j)
+                break
+        else:
+            num_post += 1
+            sum_f += int(forward_count)
+            sum_c += int(comment_count)
+            sum_l += int(like_count)
+
+        #fileout.write('\t'.join([uid, mid, time, forward_count, comment_count, like_count, str(len(content)), content]))
 
 
 if __name__ == '__main__':
+    #predict_average(predict_file, predict_data, fileout)
+    #print(len(filein.readlines()))
+    #get_data_and_write(filein,fileout)
+    #get_data_user(filein, fileout, 500000)
     #predict_000(filein, fileout)
     #get_data(filein, fileout)
     precision(predict, real)
