@@ -151,7 +151,7 @@ def get_data_user(filein, num_user):
     sum_l = 0
     i = 0
     j = 0
-    fileout = open(filein_name[:-4] + '-' + str(num_user)+ '.txt', 'w', encoding='utf-8')
+    fileout = open(filein_name +str(num_user)+ '.txt', 'w', encoding='utf-8')
     while i < num_user: # write number of users as demand in num_user 
         line = filein.readline()
         j += 1
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     #predict_average(predict_file, predict_data, fileout)
     #print(len(filein.readlines()))
     #get_data_and_write(filein, fileout)
-    get_data_user(filein, 1000)
+    get_data_user(filein, 100)
     #predict_000(filein, fileout)
     #get_data(filein, fileout)
     #precision(predict, real)
