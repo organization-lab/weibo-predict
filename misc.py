@@ -11,7 +11,7 @@ from sys import argv
 #file1 = 'weibo_train_data.txt'
 
 script, filein_name = argv
-filein = open(filein_name, encoding='utf-8')
+#filein = open(filein_name, encoding='utf-8')
 
 #fileout = open('predict_1000_average.txt', 'w')
 
@@ -20,6 +20,17 @@ filein = open(filein_name, encoding='utf-8')
 
 #predict_file = open('first1000user.txt')
 #predict_data = open('uid_average.txt')
+
+def sep(filein):
+    f = filein.readlines()
+    print(len(f[:100000]), len(f[100000:200000]), len(f[200000:]))
+
+    fileout = open(filein_name + '-0.txt', 'w', encoding='utf-8')
+    fileout.writelines(f[:100000])
+    fileout = open(filein_name + '-1.txt', 'w', encoding='utf-8')
+    fileout.writelines(f[100000:200000])
+    fileout = open(filein_name + '-2.txt', 'w', encoding='utf-8')
+    fileout.writelines(f[200000:])
 
 def predict_000(filein, fileout):
     """保留前两列内容, 写下000
@@ -187,12 +198,12 @@ if __name__ == '__main__':
     #predict_average(predict_file, predict_data, fileout)
     #print(len(filein.readlines()))
     #get_data_and_write(filein, fileout)
-    get_data_user(filein, 1000)
+    #sep(filein)
+    #get_data_user(filein, 1000)
     #predict_000(filein, fileout)
     #get_data(filein, fileout)
     #precision(predict, real)
-    '''
-    for i in ['000','111','100','010','001','222']:
-        f = open('post' + i +'.txt',  encoding='utf-8')
-        print(i, len(f.readlines()))
-    '''
+    f1 = open('7-10-log_reg.txt', encoding='utf-8')
+    for i in range(0,10):
+        print(f1.readline())
+    

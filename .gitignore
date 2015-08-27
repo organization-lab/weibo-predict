@@ -1,3 +1,5 @@
 *.txt
 *.mat
 copy/
+*.pkl
+*.npy

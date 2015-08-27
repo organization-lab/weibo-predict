@@ -27,21 +27,28 @@ def precision(predict, real, output=False):
 
     precision_up = 0
     precision_down = 0
-
+    totalfp, totalcp, totallp = 0,0,0
+    totalfr, totalcr, totallr = 0,0,0
     for pred_i in predict:
         real_i = real.readline()
         #print(re.search(find, pred_i).group())
         if not pred_i:
             print ('nothing')
             break
+
         fp, cp, lp = split.split(re.search(find, pred_i).group())
         fp, cp, lp = int(fp), int(cp), int(lp)
+        totalfp += fp
+        totalcp += cp
+        totallp += lp
         # forward_predict, comment_predict, like_predict
         (uid, mid, time, fr,
         cr, lr, content) = t.split(real_i)
         #fr, cr, lr = split.split(re.search(find, real_i).group())
         fr, cr, lr = int(fr), int(cr), int(lr)
-
+        totalfr += fr
+        totalcr += cr
+        totallr += lr
         # forward_real, comment_real, like_real
         dev_f = math.fabs(fp - fr) / (fr + 5)
         dev_c = math.fabs(cp - cr) / (cr + 3)
@@ -61,5 +68,7 @@ def precision(predict, real, output=False):
                                   uid + '\t'+ mid + '\t'+ time+ '\t'+ content)
         precision_down += count_i + 1
     print(precision_up, precision_down, precision_up / precision_down)
-
+    print('p', totalfp, totalcp, totallp)
+    print('r', totalfr, totalcr, totallr)
+    
 precision(open(predict, encoding='utf-8'), open(real, encoding='utf-8'), output='precision_details.txt')
