@@ -98,15 +98,17 @@ m:272702, true_pos:11842, false_pos:10817, false_neg:39854, true_neg:210189
 m:272702, true_pos:12088, false_pos:8028, false_neg:30717, true_neg:221869
 
 
-372195 988187 0.37664429910533126
-p 13430264012492 22517387061210 330688390792202
-r 585911 253255 302213
-Franks-Mac-mini:weibo-predict FrankHu$ python cut.py ohno
-Finished: runtime 172.57033705711365
+```
 Franks-Mac-mini:weibo-predict FrankHu$ python precision.py 0827-predict-12.txt copy/12.txt
+
 372397 988187 0.37684871385679025
 p 491922 280655 230124
 r 585911 253255 302213
+```
+
+可视化
+
+小值方面: 三者都是预测值偏高的更多, 如预测1 实际0
 
 ---
 

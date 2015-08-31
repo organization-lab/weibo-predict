@@ -388,7 +388,6 @@ def predict_logistic_reg(fileout=0):
         if i == 0:
             print(f_lr,c_lr,l_lr)
 
-
         if uid in dataset:
             ave = dataset[uid]
         else:
@@ -534,7 +533,7 @@ def linear_reg_uid():
 
     fileout.write(json.dumps(dataset))
 
-def linear_reg():
+def linear_reg_poly2():
     f = open('0826uid-log-reg-data.txt')
     fileout = open('0827-linear-reg-model.txt', 'w')
     dataset = json.loads(f.readline())
@@ -589,9 +588,59 @@ def linear_reg():
                      [clf_l.intercept_, clf_l.coef_.tolist()]]
         #print(models)
         
+    fileout.write(json.dumps(models))# 二次拟合, 已弃
+
+def linear_reg():
+    f = open('0826uid-log-reg-data.txt')
+    fileout = open('0827-linear-reg-model.txt', 'w')
+    dataset = json.loads(f.readline())
+
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn import linear_model
+
+    models = {}
+
+    for i in dataset:
+        uid, s = i, dataset[i]
+
+        Xf = []
+        Xc = []
+        Xl = []
+        yf = []
+        yc = []
+        yl = []
+
+        for j in range(0, len(s[0])):
+            #print(s[0][i], s[1][i])
+            fp,cp,lp, fa,ca,la = s[0][j]
+            fr,cr,lr = s[1][j]
+            Xf.append([fp, fa])
+            yf.append(fr)
+            Xc.append([cp, ca])
+            yc.append(cr)
+            Xl.append([lp, la])
+            yl.append(lr)            
+
+        if Xf == []:
+            continue
+
+        clf_f = linear_model.LinearRegression()
+        clf_f.fit(Xf, yf)
+
+        clf_c = linear_model.LinearRegression()
+        clf_c.fit(Xc, yc)
+
+        clf_l = linear_model.LinearRegression()
+        clf_l.fit(Xl, yl)
+
+        models[i] = [[clf_f.intercept_, clf_f.coef_.tolist()],
+                     [clf_c.intercept_, clf_c.coef_.tolist()],
+                     [clf_l.intercept_, clf_l.coef_.tolist()]]
+        #print(models)
+        
     fileout.write(json.dumps(models))
 
-def final_predict():
+def final_predict_poly2():# 二次拟合, 已弃
     """使用 线性拟合的概率拟合 f,c,l
 
     i: uid average; model; data to predict(probability)
@@ -689,9 +738,6 @@ def final_predict():
         
         i += 1
         #break
-    
-
-    
       
     #test output
     '''
@@ -699,6 +745,104 @@ def final_predict():
     print(models)
     for i in Xf2:
         print(np.dot(i,clf_f.coef_)+clf_f.intercept_)'''
+
+def final_predict():
+    """使用 线性拟合的概率拟合 f,c,l
+
+    i: uid average; model; data to predict(probability)
+    o: predict f,c,l
+    """
+    # 读取 uid average, model
+    '''
+    filein = open('weibo_predict_data.txt', encoding='utf-8')
+    prob_f = open('predict-0824-100prob.txt')
+    prob_c = open('predict-0824-010prob.txt')
+    prob_l = open('predict-0824-001prob.txt')
+    models = open('0827-linear-reg-model.txt')
+    predict_data = open('uid_average.txt')
+    fileout = open('0827-predict.txt','w')    
+    '''
+    filein = open('copy/12.txt', encoding='utf-8')
+    prob_f = open('copy/12-100prob.txt')
+    prob_c = open('copy/12-010prob.txt')
+    prob_l = open('copy/12-001prob.txt')
+    models = open('0827-linear-reg-model.txt')
+    predict_data = open('uid_average.txt')
+    fileout = open('0827-predict-12.txt','w')
+    
+    models = json.loads(models.readline())
+    t = re.compile('\t')
+    log_reg_f = json.loads(prob_f.readline())
+    log_reg_c = json.loads(prob_c.readline())
+    log_reg_l = json.loads(prob_l.readline())
+
+    predict_data = predict_data.readlines()
+    average = {}
+    for line in predict_data:
+        uid, num_post, f,c,l = t.split(line)
+        f = (float(f))
+        c = (float(c))
+        l = (float(l))
+        average[uid] = (f, c, l) # 暂存平均值
+
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn import linear_model
+    import numpy as np
+
+    i = 0
+    for line in filein:
+        uid, mid = t.split(line)[0], t.split(line)[1]
+        f_lr = log_reg_f[i][1]
+        c_lr = log_reg_c[i][1]
+        l_lr = log_reg_l[i][1]
+
+        if uid in models:
+            #读取 线性拟合 models
+            f_intercept, f_coef = models[uid][0]
+            c_intercept, c_coef = models[uid][1]
+            l_intercept, l_coef = models[uid][2]
+
+            Xf = [f_lr, average[uid][0]]
+            Xc = [c_lr, average[uid][1]]
+            Xl = [l_lr, average[uid][2]]
+
+            #使用 概率 和 average 进行预测
+
+            f_predict = (f_intercept + np.dot(Xf,f_coef))
+            c_predict = (c_intercept + np.dot(Xc,c_coef))
+            l_predict = (l_intercept + np.dot(Xl,l_coef))
+
+            #整理输出为非负整数
+            if f_predict < 0:
+                f_predict = 0
+            elif f_predict > 10000:
+                f_predict = 10000
+            else:
+                f_predict = round(float(f_predict))
+
+            if c_predict < 0:
+                c_predict = 0
+            elif c_predict > 10000:
+                c_predict = 10000
+            else:
+                c_predict = round(float(c_predict))
+            if l_predict < 0:
+                l_predict = 0
+            elif l_predict > 10000:
+                l_predict = 10000
+            else:
+                l_predict = round(float(l_predict))
+
+        else: #可能出现未知用户, 避免读词典导致报错
+            f_predict = round(float(f_lr))
+            c_predict = round(float(c_lr))
+            l_predict = round(float(l_lr))
+        #输出
+        fileout.write(uid + '\t' + mid + '\t' + 
+                      str(f_predict) + ',' + str(c_predict) + ',' +
+                      str(l_predict) + '\n')    
+        i += 1
+
 
 def main():
     import time
@@ -726,7 +870,7 @@ def main():
     #log_reg_data_append_average()
     #linear_reg_uid()
     #linear_reg()
-    final_predict()
+    #final_predict()
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
     #cut_replace(filein)
