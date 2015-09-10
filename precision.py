@@ -10,7 +10,6 @@ from sys import argv
 
 script, predict, real = argv
 
-
 def precision(predict, real, output=False):
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
@@ -45,6 +44,7 @@ def precision(predict, real, output=False):
         if not pred_i:
             print ('nothing')
             break
+        #print(pred_i, real_i)
 
         fp, cp, lp = split.split(re.search(find, pred_i).group())
         fp, cp, lp = int(fp), int(cp), int(lp)
@@ -99,11 +99,12 @@ def precision(predict, real, output=False):
     print(precision_up, precision_down, precision_up / precision_down)
     print('p', totalfp, totalcp, totallp)
     print('r', totalfr, totalcr, totallr)
+    '''
     print(xf,yf)
     print(xc, yc)
     print(xl,yl)
     print(len(list_xc))
-
+    '''
     plt.figure(1)
     plt.hist2d(list_xf,list_yf,range=[[0,20],[0,20]],bins=20, norm=LogNorm())
     plt.colorbar()
@@ -115,6 +116,6 @@ def precision(predict, real, output=False):
     plt.colorbar()  
     plt.show()
 
-
-
-precision(open(predict, encoding='utf-8'), open(real, encoding='utf-8'), output='precision_details.txt')
+precision(open(predict, encoding='utf-8'), 
+    open(real, encoding='utf-8'), 
+    output='precision_details.txt')

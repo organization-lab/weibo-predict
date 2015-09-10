@@ -8,41 +8,52 @@ import jieba
 import json
 import math
 from operator import itemgetter
-from sys import argv
-
-script, filein_name = argv
 
 #filein = open(filein_name, encoding='utf-8')
 
-def get_data_and_write(filein, fileout):
-    """用 readline 逐行读入数据并 unpack
+def cut_to_lists(filein, fileout):
+    """ 分词并输出列表到文件
 
-    可用适当参数输出
+    分词后已去重
     """
     t = re.compile('\t')
     time_sep = re.compile('-')
 
     temp = []
+
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, time, forward_count,
         comment_count, like_count, content) = t.split(line)
-        #yyyy, mm, dd = time_sep.split(time)
-        #print(yyyy, mm, dd)
+
         forward_count = int(forward_count)
         comment_count = int(comment_count)
         like_count = int(like_count)
+
         cut_list = jieba.lcut(content)
-        #print(cut_list)
-        if forward_count == 0 and comment_count == 0 and like_count == 0:
-            fileout000.write('000 '+ ' '.join(cut_list))
-        else:             
-            if forward_count != 0:
-                fileout100.write('100 '+ ' '.join(cut_list))
-            if comment_count != 0:
-                fileout010.write('010 '+ ' '.join(cut_list))
-            if like_count != 0:
-                fileout001.write('001 '+ ' '.join(cut_list))
-#get_data_and_write(filein, fileout)
+        content = ' '.join(cut_list)
+
+        ''' remove duplicates
+        cut_list_no_dup = [] # remove duplicates
+        for i in cut_list:
+            if i not in cut_list_no_dup:
+                cut_list_no_dup.append(i)
+        '''
+        fileout.write(json.dumps([uid,mid,time,
+            forward_count,comment_count,like_count,
+            content]) + '\n')
+
+def cut_loader():
+    filein = open('copy/weibo_train_data_sort.txt', encoding='utf-8')
+    fileout = open('weibo_train_data_cut.txt', 'w', encoding='utf-8')
+    cut_to_lists(filein, fileout)
+
+    '''
+    for i in range(0,6):
+        for j in ['forward','comment','like']:
+            filein = open(j + str(i) +'.txt', encoding='utf-8')
+            fileout = open(j + str(i) +'cut.txt', 'w', encoding='utf-8')
+            cut_to_lists(filein, fileout)
+    '''
 
 def init_dict(filein):
     """从已有的分词文件建立dict
@@ -58,7 +69,6 @@ def init_dict(filein):
                 d[word] += 1
             else:
                 d[word] = 1
-
     d1 = {}
     d2 = 0
     d3 = 0
@@ -227,7 +237,6 @@ def loader():
     print(X.shape, y.shape)
     print(type(X), type(y))
     log_reg(X,y.ravel())
-
 
 def predict_loader():
     import scipy.io as sio
@@ -1032,36 +1041,12 @@ def predict_count(proba_list):
             second_max = proba_list[category + 1]
             predict = round(d[category] + (max_proba - second_max) * (d[category + 1] - d[category]))
     return predict
+
 def main():
     import time
     t0 = time.time()
-    #ftemp = open(filein)
-    #init_dict(filein)
-    #load_dict(filein)
-    '''
-    s = ['copy/8.txt-1.txt','copy/8.txt-2.txt',
-         'copy/9.txt-0.txt','copy/9.txt-1.txt','copy/9.txt-2.txt',
-         'copy/10.txt-0.txt','copy/10.txt-1.txt','copy/10.txt-2.txt',
-         'copy/11.txt-0.txt','copy/11.txt-1.txt','copy/11.txt-2.txt',
-         'copy/12.txt-0.txt','copy/12.txt-1.txt','copy/12.txt-2.txt',]
-    global filein_name
-    for filename in s:
-        filein_name = filename
-        print(filename)
-        cal_features(open(filein_name, encoding='utf-8')) #计算feature
-    '''
-    #cal_features(filein)
-    #loader() 
-    #predict_loader() #预测
-    #predict(filein_name)
-    #predict_logistic_reg()
-    #log_reg_data_append_average()
-    #linear_reg_uid()
-    #linear_reg()
-    #linear_reg_poly2()
-    #final_predict_poly2()
-    #predict_multi()
-    predict_compare('hello')
+    cut_loader()
+    #predict_compare('hello')
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
     #cut_replace(filein)

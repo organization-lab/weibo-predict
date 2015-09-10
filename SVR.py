@@ -224,10 +224,50 @@ def loader():
 
     X = sio.loadmat('uid_dict_X100-7-10.mat')['X']
     y = sio.loadmat('7-10y100.mat')['y']
-    print(X.shape, y.shape)
-    print(type(X), type(y))
-    log_reg(X,y.ravel())
+    print((X[:,:2000]).shape, y.shape)
+    print(type(X[:][:2000]), type(y))
 
+    new_linear(X,y.ravel())
+
+def new_linear(X,y):
+    """new_linear 
+
+    """
+    import numpy as np
+    
+    from sklearn import linear_model
+
+    # Set regularization parameter
+
+    # turn down tolerance for short training time
+    clf = linear_model.LinearRegression(fit_intercept=False,n_jobs=-1)
+
+    clf.fit(X, y)
+
+    #print("score: %.4f" % clf.score(X, y))
+
+    from sklearn.externals import joblib
+    joblib.dump(clf, '0908_uid_linear_100.pkl')
+
+def svr(X,y):
+    """SVR 
+
+    """
+    import numpy as np
+    
+    from sklearn import svm
+
+    # Set regularization parameter
+
+    # turn down tolerance for short training time
+    clf = svm.SVR(kernel='linear', C=1e3)
+
+    clf.fit(X, y)
+
+    print("score: %.4f" % clf.score(X, y))
+
+    from sklearn.externals import joblib
+    joblib.dump(clf, '0906_uid_svr_100.pkl')
 
 def predict_loader():
     import scipy.io as sio
@@ -298,6 +338,7 @@ def predict(filein_name):
     """预测
 
     """
+    filein_name = '0908-7-10.txt'
     # get models
     from sklearn.externals import joblib
     LR010 = joblib.load('0903_uid_ave_010.pkl') 
@@ -306,17 +347,17 @@ def predict(filein_name):
 
     import scipy.io as sio
 
-    X = sio.loadmat('uid_dict_X001-12.mat')['X']
+    X = sio.loadmat('uid_dict_X001-7-10.mat')['X']
     y_predict_prob = LR001.predict_proba(X)
     f = open(filein_name[:-4] + '-001prob.txt', 'w')
     f.write(json.dumps(y_predict_prob.tolist()))
 
-    X = sio.loadmat('uid_dict_X010-12.mat')['X']
+    X = sio.loadmat('uid_dict_X010-7-10.mat')['X']
     y_predict_prob = LR010.predict_proba(X)
     f = open(filein_name[:-4] + '-010prob.txt', 'w')
     f.write(json.dumps(y_predict_prob.tolist()))
 
-    X = sio.loadmat('uid_dict_X100-12.mat')['X']
+    X = sio.loadmat('uid_dict_X100-7-10.mat')['X']
     y_predict_prob = LR100.predict_proba(X)
     f = open(filein_name[:-4] + '-100prob.txt', 'w')
     f.write(json.dumps(y_predict_prob.tolist()))
@@ -1032,6 +1073,7 @@ def predict_count(proba_list):
             second_max = proba_list[category + 1]
             predict = round(d[category] + (max_proba - second_max) * (d[category + 1] - d[category]))
     return predict
+
 def main():
     import time
     t0 = time.time()
@@ -1051,7 +1093,7 @@ def main():
         cal_features(open(filein_name, encoding='utf-8')) #计算feature
     '''
     #cal_features(filein)
-    #loader() 
+    predict('0908-7-10.txt') 
     #predict_loader() #预测
     #predict(filein_name)
     #predict_logistic_reg()
@@ -1061,7 +1103,7 @@ def main():
     #linear_reg_poly2()
     #final_predict_poly2()
     #predict_multi()
-    predict_compare('hello')
+    #predict_compare('hello')
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
     #cut_replace(filein)

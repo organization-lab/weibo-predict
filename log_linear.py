@@ -8,9 +8,9 @@ import jieba
 import json
 import math
 from operator import itemgetter
-from sys import argv
+#from sys import argv
 
-script, filein_name = argv
+#script, filein_name = argv
 
 #filein = open(filein_name, encoding='utf-8')
 
@@ -224,10 +224,50 @@ def loader():
 
     X = sio.loadmat('uid_dict_X100-7-10.mat')['X']
     y = sio.loadmat('7-10y100.mat')['y']
-    print(X.shape, y.shape)
-    print(type(X), type(y))
-    log_reg(X,y.ravel())
+    print((X[:,:2000]).shape, y.shape)
+    print(type(X[:][:2000]), type(y))
 
+    new_linear(X,y.ravel())
+
+def new_linear(X,y):
+    """new_linear 
+
+    """
+    import numpy as np
+    
+    from sklearn import linear_model
+
+    # Set regularization parameter
+
+    # turn down tolerance for short training time
+    clf = linear_model.LinearRegression(fit_intercept=False,n_jobs=-1)
+
+    clf.fit(X, y)
+
+    print("score: %.4f" % clf.score(X, y))
+
+    from sklearn.externals import joblib
+    joblib.dump(clf, '0908_uid_linear_100.pkl')
+
+def svr(X,y):
+    """SVR 
+
+    """
+    import numpy as np
+    
+    from sklearn import svm
+
+    # Set regularization parameter
+
+    # turn down tolerance for short training time
+    clf = svm.SVR(kernel='linear', C=1e3)
+
+    clf.fit(X, y)
+
+    print("score: %.4f" % clf.score(X, y))
+
+    from sklearn.externals import joblib
+    joblib.dump(clf, '0906_uid_svr_100.pkl')
 
 def predict_loader():
     import scipy.io as sio
@@ -298,6 +338,7 @@ def predict(filein_name):
     """预测
 
     """
+    filein_name = '0908-12.txt'
     # get models
     from sklearn.externals import joblib
     LR010 = joblib.load('0903_uid_ave_010.pkl') 
@@ -308,18 +349,19 @@ def predict(filein_name):
 
     X = sio.loadmat('uid_dict_X001-12.mat')['X']
     y_predict_prob = LR001.predict_proba(X)
-    f = open(filein_name[:-4] + '-001prob.txt', 'w')
-    f.write(json.dumps(y_predict_prob.tolist()))
+    print(y_predict_prob.shape)
+    sio.savemat(filein_name[:-4] + 'y001.mat', {'y':y_predict_prob})
 
     X = sio.loadmat('uid_dict_X010-12.mat')['X']
     y_predict_prob = LR010.predict_proba(X)
-    f = open(filein_name[:-4] + '-010prob.txt', 'w')
-    f.write(json.dumps(y_predict_prob.tolist()))
+    print(y_predict_prob.shape)
+    sio.savemat(filein_name[:-4] + 'y010.mat', {'y':y_predict_prob})
 
     X = sio.loadmat('uid_dict_X100-12.mat')['X']
     y_predict_prob = LR100.predict_proba(X)
-    f = open(filein_name[:-4] + '-100prob.txt', 'w')
-    f.write(json.dumps(y_predict_prob.tolist()))
+    print(y_predict_prob.shape)
+    sio.savemat(filein_name[:-4] + 'y100.mat', {'y':y_predict_prob})
+
 
 def predict_cut(model, X, y_real):
     from sklearn.externals import joblib
@@ -906,6 +948,57 @@ def final_predict():
         i += 1
         #break
 
+def train_linear():
+    """使用 逻辑回归的概率, 二次拟合 f,c,l
+
+    i: uid average; model; data to predict(probability)
+    o: predict f,c,l
+    """
+    # 读取 uid average, model
+    '''
+    filein = open('weibo_predict_data.txt', encoding='utf-8')
+    prob_f = open('predict-0824-100prob.txt')
+    prob_c = open('predict-0824-010prob.txt')
+    prob_l = open('predict-0824-001prob.txt')
+    models = open('0827-linear-reg-model.txt')
+    predict_data = open('uid_average.txt')
+    fileout = open('0827-predict.txt','w')    
+
+    '''
+    import scipy.io as sio
+    from sklearn import linear_model
+
+    filein = open('12.txt', encoding='utf-8')
+    X_f = sio.loadmat('0908-10feature-100.mat')['X']
+    X_c = sio.loadmat('0908-10feature-010.mat')['X']
+    X_l = sio.loadmat('0908-10feature-001.mat')['X']
+
+    y_f = sio.loadmat('7-10y100.mat')['y'].ravel()
+    y_c = sio.loadmat('7-10y010.mat')['y'].ravel()
+    y_l = sio.loadmat('7-10y001.mat')['y'].ravel()
+    
+    print(X_f.shape, y_f.shape)
+    clf = linear_model.LinearRegression(fit_intercept=False,n_jobs=-1)
+    clf.fit(X_f, y_f)
+    print("score: %.4f" % clf.score(X_f, y_f))
+
+    from sklearn.externals import joblib
+    joblib.dump(clf, '0908_uid_linear_100.pkl')
+
+    print(X_f.shape, y_f.shape)
+    clf = linear_model.LinearRegression(fit_intercept=False,n_jobs=-1)
+    clf.fit(X_c, y_c)
+    print("score: %.4f" % clf.score(X_c, y_c))
+
+    joblib.dump(clf, '0908_uid_linear_010.pkl')
+
+    print(X_f.shape, y_f.shape)
+    clf = linear_model.LinearRegression(fit_intercept=False,n_jobs=-1)
+    clf.fit(X_l, y_l)
+    print("score: %.4f" % clf.score(X_l, y_l))
+
+    joblib.dump(clf, '0908_uid_linear_001.pkl')
+
 def predict_multi():
     """使用 线性拟合的概率拟合 f,c,l
 
@@ -923,95 +1016,50 @@ def predict_multi():
     fileout = open('0827-predict.txt','w')    
 
     '''
+    from sklearn.externals import joblib
     filein = open('12.txt', encoding='utf-8')
-    prob_f = open('12-100prob.txt')
-    prob_c = open('12-010prob.txt')
-    prob_l = open('12-001prob.txt')
-    predict_data = open('uid_average.txt')
+    model_f = joblib.load('0908_uid_linear_100.pkl') 
+    model_c = joblib.load('0908_uid_linear_010.pkl') 
+    model_l = joblib.load('0908_uid_linear_001.pkl') 
     fileout = open('0903-predict-12.txt','w')
-    
-    from sklearn.preprocessing import PolynomialFeatures
+
+    import scipy.io as sio
+    X_f = sio.loadmat('0908-10feature-100.mat')['X']
+    X_c = sio.loadmat('0908-10feature-010.mat')['X']
+    X_l = sio.loadmat('0908-10feature-001.mat')['X']
+
     from sklearn import linear_model
     import numpy as np
 
     t = re.compile('\t')
-    log_reg_f = json.loads(prob_f.readline())
-    log_reg_c = json.loads(prob_c.readline())
-    log_reg_l = json.loads(prob_l.readline())
+    log_reg_f = model_f.predict(X_f)
+    print(log_reg_f.shape)
+    
+    log_reg_c = model_c.predict(X_c)
+    log_reg_l = model_l.predict(X_l)
 
-    predict_data = predict_data.readlines()
-    average = {}
-    for line in predict_data:
-        uid, num_post, f,c,l = t.split(line)
-        f = (float(f))
-        c = (float(c))
-        l = (float(l))
-        average[uid] = (f, c, l) # 暂存平均值
+
 
     i = 0
     for line in filein:
         uid, mid = t.split(line)[0], t.split(line)[1]
-        f_lr = log_reg_f[i]
-        c_lr = log_reg_c[i]
-        l_lr = log_reg_l[i]
+        f_lr = modify(log_reg_f[i])
+        c_lr = modify(log_reg_c[i])
+        l_lr = modify(log_reg_l[i])
 
-        #print(f_lr,c_lr,l_lr)
-        #print(f_lr.index(max(f_lr)),c_lr.index(max(c_lr)),l_lr.index(max(l_lr)))
-
-        #print(predict_count(f_lr.index(max(f_lr))))
-        #print(predict_count(c_lr.index(max(c_lr))))
-        #print(predict_count(l_lr.index(max(l_lr))))
-        '''
-        if uid in models:
-            #读取 线性拟合 models
-            f_intercept, f_coef = models[uid][0]
-            c_intercept, c_coef = models[uid][1]
-            l_intercept, l_coef = models[uid][2]
-
-            Xf = [f_lr]
-            Xc = [c_lr]
-            Xl = [l_lr]
-
-            #使用 概率 和 average 进行预测
-
-            f_predict = (f_intercept + np.dot(Xf,f_coef))
-            c_predict = (c_intercept + np.dot(Xc,c_coef))
-            l_predict = (l_intercept + np.dot(Xl,l_coef))
-
-            #整理输出为非负整数
-            if f_predict < 0:
-                f_predict = 0
-            elif f_predict > 10000:
-                f_predict = 10000
-            else:
-                f_predict = round(float(f_predict))
-
-            if c_predict < 0:
-                c_predict = 0
-            elif c_predict > 10000:
-                c_predict = 10000
-            else:
-                c_predict = round(float(c_predict))
-            if l_predict < 0:
-                l_predict = 0
-            elif l_predict > 10000:
-                l_predict = 10000
-            else:
-                l_predict = round(float(l_predict))
-
-        else: #可能出现未知用户, 避免读词典导致报错
-        '''
-        f_predict = predict_count(f_lr)
-        c_predict = predict_count(c_lr)
-        l_predict = predict_count(l_lr)
         
         #输出
         fileout.write(uid + '\t' + mid + '\t' + 
-                      str(f_predict) + ',' + str(c_predict) + ',' +
-                      str(l_predict) + '\n')    
+                      str(f_lr) + ',' + str(c_lr) + ',' +
+                      str(l_lr) + '\n')    
         
         i += 1
-        #break
+
+def modify(raw_number):
+    if raw_number < 0:
+        return 0 
+    else: 
+        return round(float(raw_number))        
 
 def predict_count(proba_list):
     d = {0:0, 1:3, 2:7, 3:15, 4:30, 5:70, 6: 100}
@@ -1032,6 +1080,7 @@ def predict_count(proba_list):
             second_max = proba_list[category + 1]
             predict = round(d[category] + (max_proba - second_max) * (d[category + 1] - d[category]))
     return predict
+
 def main():
     import time
     t0 = time.time()
@@ -1051,7 +1100,13 @@ def main():
         cal_features(open(filein_name, encoding='utf-8')) #计算feature
     '''
     #cal_features(filein)
-    #loader() 
+    #predict('0908-7-10.txt') 
+
+    #predict('test')
+    predict_multi()
+    #train_linear()
+
+
     #predict_loader() #预测
     #predict(filein_name)
     #predict_logistic_reg()
@@ -1061,7 +1116,7 @@ def main():
     #linear_reg_poly2()
     #final_predict_poly2()
     #predict_multi()
-    predict_compare('hello')
+    #predict_compare('hello')
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
     #cut_replace(filein)
