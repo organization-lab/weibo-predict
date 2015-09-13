@@ -7,6 +7,7 @@ import scipy.io as sio
 import re
 import scipy as sp
 import numpy as np
+import json
 
 def categorize_weibo(filein):
     """分类输出微博信息
@@ -25,24 +26,17 @@ def categorize_weibo(filein):
         output_comment.append(open(('comment' + str(i) + '.txt'), 'w', encoding='utf-8'))
         output_like.append(open(('like' + str(i) + '.txt'), 'w', encoding='utf-8'))
 
-
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, time, forward_count,
-        comment_count, like_count, content) = t.split(line)
-        #yyyy, mm, dd = time_sep.split(time)
-        #print(yyyy, mm, dd)
-        forward_count = int(forward_count)
-        comment_count = int(comment_count)
-        like_count = int(like_count)
-        #cut_list = jieba.lcut(content)
-        #print(cut_list)
+        comment_count, like_count, content) = json.loads(line)
+
         forward_class = classify(forward_count)
         comment_class = classify(comment_count)
         like_class = classify(like_count)
 
         output_forward[forward_class].write(line)
         output_comment[comment_class].write(line)
-        output_like[like_class].write(line)
+        output_like[like_class].write(line)       
 
 def classify(number):
     """分成七类, 防止单个类别样本量太少, 不够总结 feature
@@ -83,26 +77,22 @@ def y_and_weight(filein, filein_name):
     """输出 y 和 weight
     """
     t = re.compile('\t')
-    y001 = []
-    y010 = []
-    y100 = []
+    y_like = []
+    y_comment = []
+    y_forward = []
     weight = []
 
     #逐行分词并添加到X,y
     linenum = 0
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, day, forward_count,
-        comment_count, like_count, content) = t.split(line)
+        comment_count, like_count, content) = json.loads(line)
         
         forward_count, comment_count, like_count = int(forward_count), int(comment_count), int(like_count)
-        # y 值, 只考虑 0/1 
-        y100.append(forward_count)
-        y010.append(comment_count)
-        y001.append(like_count)
-
-        #y100.append(categorize(forward_count))
-        #y010.append(categorize(comment_count))
-        #y001.append(categorize(like_count))
+        
+        y_forward.append(forward_count)
+        y_comment.append(comment_count)
+        y_like.append(like_count)
 
         weight_i = forward_count + comment_count + like_count + 1
         if weight_i > 100:
@@ -110,9 +100,9 @@ def y_and_weight(filein, filein_name):
         weight.append(weight_i)
 
     # io to file
-    sio.savemat(filein_name[:-4] + 'y001.mat', {'y':y001})
-    sio.savemat(filein_name[:-4] + 'y010.mat', {'y':y010})
-    sio.savemat(filein_name[:-4] + 'y100.mat', {'y':y100})
+    sio.savemat(filein_name[:-4] + 'y_like.mat', {'y':y_like})
+    sio.savemat(filein_name[:-4] + 'y_comment.mat', {'y':y_comment})
+    sio.savemat(filein_name[:-4] + 'y_forward.mat', {'y':y_forward})
     sio.savemat(filein_name[:-4] + 'weight.mat', {'weight':weight})
 
 def uid_average(filein, filein_name):
@@ -138,7 +128,7 @@ def uid_average(filein, filein_name):
     linenum = 0
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, day, forward_count,
-        comment_count, like_count, content) = t.split(line)
+        comment_count, like_count, content) = json.loads(line)
         uid_features.append(dataset[uid])
         
         ''' small check
@@ -175,9 +165,10 @@ def combineX():
 
 
 if __name__ == '__main__':
-    filein = open('copy/weibo_train_data_sort.txt', encoding='utf-8')
-    categorize_weibo(filein)
-    #y_and_weight(filein, '12.txt')
+    filein = open('weibo_train_data_cut.txt', encoding='utf-8')
+    #categorize_weibo(filein)
+    uid_average(filein, 'weibo_train_data_cut.txt')
+    #y_and_weight(filein, 'weibo_train_data_cut.txt')
 
     #matrix_shape(['log_reg_modelX001-7-10.mat'])
     #matrix_shape(['7-10y001.mat'])
