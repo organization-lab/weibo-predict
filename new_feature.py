@@ -7,10 +7,38 @@ import re
 import jieba
 import json
 import math
+import scipy.io as sio
 
 #filein = open(filein_name, encoding='utf-8')
 
-def cut_to_lists(filein, fileout):
+def sep_file(filein):
+    """用 readline 逐行读入数据并 unpack
+
+    可用适当参数输出
+    """
+    t = re.compile('\t')
+    time_sep = re.compile('-')
+
+    fileout = open('07-cut.txt', 'w', encoding='utf-8')
+    fileout2 = open('08-12-cut.txt', 'w', encoding='utf-8')
+
+    temp = []
+
+    #i = 0
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, time, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        yyyy, mm, dd = time_sep.split(time)
+        #print(yyyy, mm, dd)
+        if mm == '07':
+            fileout.write(line)
+        else:
+            fileout2.write(line)
+        #i+=1
+        #if i == 100:
+        #    break
+
+def cut_to_lists(filein, filein_name):
     """ 分词并输出列表到文件
 
     分词后已去重
@@ -19,14 +47,17 @@ def cut_to_lists(filein, fileout):
     time_sep = re.compile('-')
 
     temp = []
+    fileout = open(filein_name[:-4] + 'cut.txt', 'w', encoding='utf-8')
 
     for line in filein: # write number of users as demand in num_user   
-        (uid, mid, time, forward_count,
+        '''(uid, mid, time, forward_count,
         comment_count, like_count, content) = t.split(line)
 
         forward_count = int(forward_count)
         comment_count = int(comment_count)
-        like_count = int(like_count)
+        like_count = int(like_count)'''
+
+        (uid, mid, time, content) = t.split(line) # for predict data
 
         cut_list = jieba.lcut(content)
         content = ' '.join(cut_list)
@@ -37,9 +68,7 @@ def cut_to_lists(filein, fileout):
             if i not in cut_list_no_dup:
                 cut_list_no_dup.append(i)
         '''
-        fileout.write(json.dumps([uid,mid,time,
-            forward_count,comment_count,like_count,
-            content]) + '\n')
+        fileout.write(json.dumps([uid, mid, time, content]) + '\n')
 
 def cut_loader():
     filein = open('weibo_train_data_cut.txt', encoding='utf-8')
@@ -102,6 +131,97 @@ def classify(number):
         return 5
     else:
         return 6
+
+def y_and_weight(filein, filein_name):
+    """输出 y 和 weight
+    """
+    t = re.compile('\t')
+
+    y_like = []
+    y_comment = []
+    y_forward = []
+    weight = []
+
+    #逐行分词并添加到X,y
+    linenum = 0
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        
+        forward_count, comment_count, like_count = int(forward_count), int(comment_count), int(like_count)
+        
+        y_forward.append(forward_count)
+        y_comment.append(comment_count)
+        y_like.append(like_count)
+
+        weight_i = forward_count + comment_count + like_count + 1
+        if weight_i > 100:
+            weight_i = 100
+        weight.append(weight_i)
+
+    # io to file
+    sio.savemat(filein_name[:-4] + '_y_like.mat', {'y':y_like})
+    sio.savemat(filein_name[:-4] + '_y_comment.mat', {'y':y_comment})
+    sio.savemat(filein_name[:-4] + '_y_forward.mat', {'y':y_forward})
+    sio.savemat(filein_name[:-4] + '_weight.mat', {'weight':weight})
+
+def uid_average(filein, filein_name):
+    """输出 uid average
+    """
+    t = re.compile('\t')
+
+    predict_data = open('uid_average.txt')
+    predict_data = predict_data.readlines()
+
+    dataset = {}
+
+    for line in predict_data:
+        uid, num_post, f,c,l = t.split(line)
+        f = (float(f))
+        c = (float(c))
+        l = (float(l))
+        dataset[uid] = [f, c, l] # 暂存平均值
+
+    uid_features = []
+
+    #逐行
+    linenum = 0
+    for line in filein: # write number of users as demand in num_user   
+        #(uid, mid, day,  content) = json.loads(line)
+
+        (uid, mid, time, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        
+        if uid in dataset: # 处理不在已有数据内的用户, 即其均值未知
+            uid_features.append(dataset[uid])
+        else: 
+            uid_features.append([0,0,0])
+
+    # io to file
+    sio.savemat(filein_name[:-4] + '_uid_ave.mat', {'X':uid_features})
+
+def post_length(filein, filein_name):
+    """输出 微博长度
+
+    """
+    t = re.compile(' ')
+
+    length = []
+
+    #逐行
+    linenum = 0
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        #(uid, mid, day, content) = t.split(line)
+        content = t.split(content)
+        content = ''.join(content)
+        print(content, len(content))
+        break
+        length.append([len(content)])
+        
+    # io to file
+    sio.savemat(filein_name[:-4] +'_X_length.mat', {'X':length})
 
 def init_dict(filein, fileout):
     """从已有的分词文件建立dict
@@ -253,122 +373,101 @@ def write_features(fileout, list_features):
     print(len(sorted_features))
     fileout.write(json.dumps(sorted_features))'''
     
-def cal_features(filein):
-    """分词并通过已有的字典生成 X,y(real)文件
+def cal_features(filein, filein_name):
+    """ 通过 post & features 生成 X
 
-    字典: f0, f1 长度, 设定为相同长度
+    i: 分词过的文件
+    o: X_dict
     """
+  
     with open(filein_name, encoding='utf-8') as f:
         num_lines = len(f.readlines())
     print(num_lines)
 
     # 载入字典
-    f000 = open('7-10-000-dict10000.txt', encoding='utf-8')
-    f001 = open('7-10-001-dict10000.txt', encoding='utf-8')
-    f010 = open('7-10-010-dict10000.txt', encoding='utf-8')
-    f100 = open('7-10-100-dict10000.txt', encoding='utf-8')
+    dict_f = open('20150913features-forward-1000.txt', encoding='utf-8')
+    dict_c = open('20150913features-comment-1000.txt', encoding='utf-8')
+    dict_l = open('20150913features-like-1000.txt', encoding='utf-8')
 
-    features000 = {}
-    features001 = {}
-    features010 = {}
-    features100 = {}
+    features_f = {}
+    features_c = {}
+    features_l = {}
 
-    f000 = json.loads(f000.readline())
-    f001 = json.loads(f001.readline())
-    f010 = json.loads(f010.readline())
-    f100 = json.loads(f100.readline())
-    print(len(f000),len(f001),len(f010),len(f100))
+    dict_f = json.loads(dict_f.readline())
+    dict_c = json.loads(dict_c.readline())
+    dict_l = json.loads(dict_l.readline())
 
-    for i in range(0, len(f000)):
-        features000[f000[i][0]] = i
-        features001[f001[i][0]] = i
-        features010[f010[i][0]] = i
-        features100[f100[i][0]] = i    
+    print(len(dict_f))
 
-    dict_length = len(features000)
+    for i in range(0, len(dict_f)):
+        features_f[dict_f[i][0]] = i 
+        features_c[dict_c[i][0]] = i 
+        features_l[dict_l[i][0]] = i 
+
+    dict_length = len(features_f)
+    print(dict_length)
 
     #初始化存储数据结构
     t = re.compile('\t')
-    time_sep = re.compile('-')
-    #fileoutX = open('X.txt','w')
+
     temp = []
 
     from scipy import sparse
-    X000 = sparse.dok_matrix((num_lines, dict_length)) #使用稀疏矩阵, 减少空间占用
-    X001 = sparse.dok_matrix((num_lines, dict_length))
-    X010 = sparse.dok_matrix((num_lines, dict_length)) #使用稀疏矩阵, 减少空间占用
-    X100 = sparse.dok_matrix((num_lines, dict_length))    
-    y000 = []
-    y001 = []
-    y010 = []
-    y100 = []
+    Xf = sparse.dok_matrix((num_lines, dict_length)) #使用稀疏矩阵, 减少空间占用 
+    Xc = sparse.dok_matrix((num_lines, dict_length))
+    Xl = sparse.dok_matrix((num_lines, dict_length))
 
-    #逐行分词并添加到X,y
     linenum = 0
-    for line in filein: # write number of users as demand in num_user   
-        #(uid, mid, day, forward_count,
-        #comment_count, like_count, content) = t.split(line)
-        (uid, mid, day, content) = t.split(line)
 
-        cut_list = jieba.lcut(content) #分词
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        #(uid, mid, day, content) = json.loads(line)
 
         cut_list_removed = [] # remove duplicates
-        for i in cut_list:
+        for i in content:
             if i not in cut_list_removed:
                 cut_list_removed.append(i)
 
         for word in cut_list_removed:
-            if word in features000:
-                X000[linenum, features000[word]] = 1
-            if word in features001:
-                X001[linenum, features001[word]] = 1
-            if word in features010:
-                X010[linenum, features010[word]] = 1
-            if word in features100:
-                X100[linenum, features100[word]] = 1            
-        # y 值, 只考虑 0/1 
-        '''
-        if int(forward_count) != 0:
-            forward_count = 1
-        else:
-            forward_count = 0
-        y100.append([forward_count])
-
-        if int(comment_count) != 0:
-            comment_count = 1
-        else:
-            comment_count = 0
-        y010.append([comment_count])
-
-        if int(like_count) != 0:
-            like_count = 1
-        else:
-            like_count = 0
-        y001.append([like_count])
-        '''
+            if word in features_f:
+                Xf[linenum, features_f[word]] = 1         
+            if word in features_c:
+                Xc[linenum, features_c[word]] = 1  
+            if word in features_l:
+                Xl[linenum, features_l[word]] = 1
 
         linenum += 1
-        if linenum % 5000 == 0:
+        if linenum % 20000 == 0:
             print(linenum)
+            #break#
 
     # io to file
     import scipy.io as sio
-    sio.savemat(filein_name[:-4] + 'X000.mat', {'X000':X000})
-    sio.savemat(filein_name[:-4] + 'X001.mat', {'X001':X001})
-    sio.savemat(filein_name[:-4] + 'X010.mat', {'X010':X010})
-    sio.savemat(filein_name[:-4] + 'X100.mat', {'X100':X100}) 
+    sio.savemat(filein_name[:-4] + '_Xf.mat', {'X':Xf})
+    sio.savemat(filein_name[:-4] + '_Xc.mat', {'X':Xc})
+    sio.savemat(filein_name[:-4] + '_Xl.mat', {'X':Xl})
 
-    '''
-    sio.savemat(filein_name[:-4] + 'y001.mat', {'y001':y001})
-    sio.savemat(filein_name[:-4] + 'y010.mat', {'y010':y010})
-    sio.savemat(filein_name[:-4] + 'y100.mat', {'y100':y100})
-    '''
+def loaders(filein_name):
+    """ 把 loaders 整理到一起
+    """
+
+    #filein = open(filein_name, encoding='utf-8')
+    #y_and_weight(filein, filein_name)
+
+    #filein = open(filein_name, encoding='utf-8')
+    #uid_average(filein, filein_name)
+
+    filein = open(filein_name, encoding='utf-8')
+    post_length(filein, filein_name)
 
 def main():
     import time
     t0 = time.time()
+    loaders('08-12-cut.txt')
+    #cal_features(filein, 'weibo_predict_data_cut.txt')
+    #uid_average(filein, '12-cut.txt')
 
-    get_features()
 
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))

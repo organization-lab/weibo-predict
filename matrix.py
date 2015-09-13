@@ -11,7 +11,7 @@ import scipy.io as sio
 import scipy.sparse as sp
 import numpy as np
 
-script, filein_name = argv
+#script, filein_name = argv
 
 def combine_matrix():
     
@@ -75,16 +75,18 @@ def combine_matrix():
     #print(X_model100.shape)
 
 def combineX():
-    matrix_list = ['copy/7.txt-X001-model.mat', 'copy/8.txt-X001-model.mat',
-                    'copy/9.txt-X001-model.mat', 'copy/10.txt-X001-model.mat']
+    matrix_list = ['weibo_train_data_cut_Xl1.mat', 'weibo_train_data_cut_Xl2.mat',
+                   'weibo_train_data_cut_Xl3.mat', 'weibo_train_data_cut_Xl4.mat',
+                   'weibo_train_data_cut_Xl5.mat']
 
     combined_list = []
     for i in matrix_list:
-        combined_list.append(sio.loadmat(i)['X001'])
+        print(i, sio.loadmat(i)['X'].shape)
+        combined_list.append(sio.loadmat(i)['X'])
 
     combined_list = sp.vstack(combined_list)
     print(combined_list.shape)
-    sio.savemat(filein_name[:-4] + 'X001-7-10.mat', {'X001':combined_list})
+    sio.savemat('weibo_train_data_cut_Xl.mat', {'X':combined_list})
 
 def combiney():
     matrix_list = ['copy/7.txt-y001-model.mat', 'copy/8.txt-y001-model.mat',
@@ -101,4 +103,3 @@ def combiney():
 
 #combine_matrix()
 combineX()
-combiney()

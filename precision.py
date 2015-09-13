@@ -106,13 +106,13 @@ def precision(predict, real, output=False):
     print(len(list_xc))
     '''
     plt.figure(1)
-    plt.hist2d(list_xf,list_yf,range=[[0,20],[0,20]],bins=20, norm=LogNorm())
+    plt.hist2d(list_xf,list_yf,range=[[0,50],[0,50]],bins=50, norm=LogNorm())
     plt.colorbar()
     plt.figure(2)
-    plt.hist2d(list_xc,list_yc,range=[[0,20],[0,20]],bins=20, norm=LogNorm())
+    plt.hist2d(list_xc,list_yc,range=[[0,50],[0,50]],bins=50, norm=LogNorm())
     plt.colorbar()
     plt.figure(3)
-    plt.hist2d(list_xl,list_yl,range=[[0,20],[0,20]],bins=20, norm=LogNorm())  
+    plt.hist2d(list_xl,list_yl,range=[[0,50],[0,50]],bins=50, norm=LogNorm())  
     plt.colorbar()  
     plt.show()
 

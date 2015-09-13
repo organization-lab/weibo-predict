@@ -100,10 +100,10 @@ def y_and_weight(filein, filein_name):
         weight.append(weight_i)
 
     # io to file
-    sio.savemat(filein_name[:-4] + 'y_like.mat', {'y':y_like})
-    sio.savemat(filein_name[:-4] + 'y_comment.mat', {'y':y_comment})
-    sio.savemat(filein_name[:-4] + 'y_forward.mat', {'y':y_forward})
-    sio.savemat(filein_name[:-4] + 'weight.mat', {'weight':weight})
+    sio.savemat(filein_name[:-4] + '_y_like.mat', {'y':y_like})
+    sio.savemat(filein_name[:-4] + '_y_comment.mat', {'y':y_comment})
+    sio.savemat(filein_name[:-4] + '_y_forward.mat', {'y':y_forward})
+    sio.savemat(filein_name[:-4] + '_weight.mat', {'weight':weight})
 
 def uid_average(filein, filein_name):
     """输出 uid average
@@ -130,16 +130,26 @@ def uid_average(filein, filein_name):
         (uid, mid, day, forward_count,
         comment_count, like_count, content) = json.loads(line)
         uid_features.append(dataset[uid])
-        
-        ''' small check
-        linenum += 1
-        if linenum == 10:
-            print(uid_features)
-            break
-        '''
 
     # io to file
-    sio.savemat(filein_name[:-4] + 'uid_ave.mat', {'X':uid_features})
+    sio.savemat(filein_name[:-4] + '_uid_ave.mat', {'X':uid_features})
+
+def post_length(filein):
+    """输出 length
+    """
+    t = re.compile('\t')
+
+    length = []
+
+    #逐行
+    linenum = 0
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = t.split(line)
+        length.append([len(content)])
+        
+    # io to file
+    sio.savemat('weibo_train_data_cut_X_length.mat', {'X':length})
 
 def matrix_shape(matrices):
     for i in matrices:
@@ -163,13 +173,13 @@ def combineX():
     print(combined_list.shape)
     sio.savemat('0908-10feature-100', {'X':combined_list})
 
-
 if __name__ == '__main__':
-    filein = open('weibo_train_data_cut.txt', encoding='utf-8')
+    filein = open('copy/weibo_train_data_sort.txt', encoding='utf-8')
+    post_length(filein)
     #categorize_weibo(filein)
-    uid_average(filein, 'weibo_train_data_cut.txt')
+    #uid_average(filein, 'weibo_train_data_cut.txt')
     #y_and_weight(filein, 'weibo_train_data_cut.txt')
-
+    #print((sio.loadmat('weibo_train_data_cut_Xf.mat')['X']).shape)
     #matrix_shape(['log_reg_modelX001-7-10.mat'])
     #matrix_shape(['7-10y001.mat'])
     #matrix_shape(['7-10uid_ave.mat'])
