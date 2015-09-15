@@ -31,30 +31,6 @@ def combine_matrix():
             sio.loadmat(filein_name[:-4] + '1X100.mat')['X100'],
             sio.loadmat(filein_name[:-4] + '2X100.mat')['X100']]
     
-    '''
-    y001 = [sio.loadmat(filein_name[:-4] + '0y001.mat')['y001'],
-            sio.loadmat(filein_name[:-4] + '1y001.mat')['y001'],
-            sio.loadmat(filein_name[:-4] + '2y001.mat')['y001']]
-
-    y010 = [sio.loadmat(filein_name[:-4] + '0y010.mat')['y010'],
-            sio.loadmat(filein_name[:-4] + '1y010.mat')['y010'],
-            sio.loadmat(filein_name[:-4] + '2y010.mat')['y010']]
-
-    y100 = [sio.loadmat(filein_name[:-4] + '0y100.mat')['y100'],
-            sio.loadmat(filein_name[:-4] + '1y100.mat')['y100'],
-            sio.loadmat(filein_name[:-4] + '2y100.mat')['y100']]
-
-
-    y001 = np.concatenate(y001, axis=0)
-    y100 = np.concatenate(y100, axis=0)
-    y010 = np.concatenate(y010, axis=0)
-    
-    #print(y001.shape)
-    #print(X000.shape)
-    sio.savemat(filein_name[:-4] + 'y001-model.mat', {'X100':y001})
-    sio.savemat(filein_name[:-4] + 'y010-model.mat', {'X100':y010}) 
-    sio.savemat(filein_name[:-4] + 'y100-model.mat', {'X100':y100})
-    '''
 
     X_000 = sp.vstack([X000[0],X000[1],X000[2]])
     X_001 = sp.vstack([X001[0],X001[1],X001[2]])
@@ -75,9 +51,7 @@ def combine_matrix():
     #print(X_model100.shape)
 
 def combineX():
-    matrix_list = ['weibo_train_data_cut_Xl1.mat', 'weibo_train_data_cut_Xl2.mat',
-                   'weibo_train_data_cut_Xl3.mat', 'weibo_train_data_cut_Xl4.mat',
-                   'weibo_train_data_cut_Xl5.mat']
+    matrix_list = ['08-12-cut1_Xl.mat', '08-12-cut2_Xl.mat']
 
     combined_list = []
     for i in matrix_list:
@@ -86,7 +60,7 @@ def combineX():
 
     combined_list = sp.vstack(combined_list)
     print(combined_list.shape)
-    sio.savemat('weibo_train_data_cut_Xl.mat', {'X':combined_list})
+    sio.savemat('08-12-cut_Xl.mat', {'X':combined_list})
 
 def combiney():
     matrix_list = ['copy/7.txt-y001-model.mat', 'copy/8.txt-y001-model.mat',

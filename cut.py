@@ -205,7 +205,7 @@ def log_reg(X,y):
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
 
-    weight = {0:1, 1:3, 2:7, 3:14, 4:30, 5:70, 6:101}
+    #weight = {0:1, 1:3, 2:7, 3:14, 4:30, 5:70, 6:101}
     # Set regularization parameter
 
     # turn down tolerance for short training time
@@ -227,7 +227,6 @@ def loader():
     print(X.shape, y.shape)
     print(type(X), type(y))
     log_reg(X,y.ravel())
-
 
 def predict_loader():
     import scipy.io as sio
@@ -1032,6 +1031,7 @@ def predict_count(proba_list):
             second_max = proba_list[category + 1]
             predict = round(d[category] + (max_proba - second_max) * (d[category + 1] - d[category]))
     return predict
+
 def main():
     import time
     t0 = time.time()

@@ -19,24 +19,22 @@ def sep_file(filein):
     t = re.compile('\t')
     time_sep = re.compile('-')
 
-    fileout = open('07-cut.txt', 'w', encoding='utf-8')
-    fileout2 = open('08-12-cut.txt', 'w', encoding='utf-8')
+    fileout1 = open('08-12-cut1.txt', 'w', encoding='utf-8')
+    fileout2 = open('08-12-cut2.txt', 'w', encoding='utf-8')
 
     temp = []
 
-    #i = 0
+    i = 0
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, time, forward_count,
         comment_count, like_count, content) = json.loads(line)
         yyyy, mm, dd = time_sep.split(time)
         #print(yyyy, mm, dd)
-        if mm == '07':
-            fileout.write(line)
+        if i < 600000:
+            fileout1.write(line)
         else:
             fileout2.write(line)
-        #i+=1
-        #if i == 100:
-        #    break
+        i+=1
 
 def cut_to_lists(filein, filein_name):
     """ 分词并输出列表到文件
@@ -165,6 +163,33 @@ def y_and_weight(filein, filein_name):
     sio.savemat(filein_name[:-4] + '_y_forward.mat', {'y':y_forward})
     sio.savemat(filein_name[:-4] + '_weight.mat', {'weight':weight})
 
+def y_class(filein, filein_name):
+    """输出 y class
+    """
+    t = re.compile('\t')
+
+    y_like = []
+    y_comment = []
+    y_forward = []
+    weight = []
+
+    #添加到 y class
+    linenum = 0
+    for line in filein: # write number of users as demand in num_user   
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        
+        forward_count, comment_count, like_count = int(forward_count), int(comment_count), int(like_count)
+        
+        y_forward.append(classify(forward_count))
+        y_comment.append(classify(comment_count))
+        y_like.append(classify(like_count))
+    print(y_forward[:50])
+    # io to file
+    sio.savemat(filein_name[:-4] + '_yC_like.mat', {'y':y_like})
+    sio.savemat(filein_name[:-4] + '_yC_comment.mat', {'y':y_comment})
+    sio.savemat(filein_name[:-4] + '_yC_forward.mat', {'y':y_forward})
+
 def uid_average(filein, filein_name):
     """输出 uid average
     """
@@ -215,9 +240,8 @@ def post_length(filein, filein_name):
         comment_count, like_count, content) = json.loads(line)
         #(uid, mid, day, content) = t.split(line)
         content = t.split(content)
-        content = ''.join(content)
-        print(content, len(content))
-        break
+        content = ''.join(content) #
+        #print(content, len(content))
         length.append([len(content)])
         
     # io to file
@@ -455,16 +479,21 @@ def loaders(filein_name):
     #filein = open(filein_name, encoding='utf-8')
     #y_and_weight(filein, filein_name)
 
-    #filein = open(filein_name, encoding='utf-8')
-    #uid_average(filein, filein_name)
+    filein = open(filein_name, encoding='utf-8')
+    uid_average(filein, filein_name)
 
     filein = open(filein_name, encoding='utf-8')
     post_length(filein, filein_name)
 
+    filein = open(filein_name, encoding='utf-8')
+    cal_features(filein, filein_name)
+
 def main():
     import time
     t0 = time.time()
-    loaders('08-12-cut.txt')
+    #sep_file(open('08-12-cut.txt', encoding='utf-8'))
+    y_class(open('08-12-cut.txt', encoding='utf-8'),'08-12-cut.txt')
+    #loaders('07-cut.txt')
     #cal_features(filein, 'weibo_predict_data_cut.txt')
     #uid_average(filein, '12-cut.txt')
 

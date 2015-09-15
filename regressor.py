@@ -4,7 +4,43 @@
 # -*- coding: utf-8 -*-
 
 
-def init():
+def init(mode):
+    """ 整理为可直接用于回归的 X, y, weight
+
+    i: features
+    o: X, y, weight(return)
+    """
+    import scipy.io as sio
+    import scipy as sp
+
+
+    combined_list = [
+        sp.sparse.csc_matrix(sio.loadmat('08-12-cut_uid_ave.mat')['X']),
+        sp.sparse.csc_matrix(sio.loadmat('08-12-cut_X_length.mat')['X']),
+
+    ]
+    if mode == 'f':
+        combined_list.append(sio.loadmat('08-12-cut_Xf.mat')['X'])
+    elif mode == 'c':
+        combined_list.append(sio.loadmat('08-12-cut_Xc.mat')['X'])
+    else:
+        combined_list.append(sio.loadmat('08-12-cut_Xl.mat')['X'])
+
+    X = sp.sparse.hstack(combined_list)
+
+    if mode == 'f':
+        y = sio.loadmat('08-12-cut_yC_forward.mat')['y'] #
+    elif mode == 'c':
+        y = sio.loadmat('08-12-cut_y_comment.mat')['y'] 
+    else:
+        y = sio.loadmat('08-12-cut_y_like.mat')['y']
+
+    weight = sio.loadmat('08-12-cut_weight.mat')['weight']
+
+    print(mode, X.shape, y.ravel().shape)
+    return X, y.ravel(), weight.ravel()
+
+def init2():
     """ 整理为可直接用于回归的 X, y, weight
 
     i: features
@@ -55,14 +91,51 @@ def random_forest_regressor(X, y, weight):
     from sklearn.ensemble import RandomForestRegressor
     from sklearn import cross_validation
 
+    
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.4, random_state=0)
+    clf = RandomForestRegressor(n_estimators=20, max_features='sqrt', n_jobs=-1)
+    clf.fit(X_train, y_train, weight_train)
+    print(clf.score(X_test, y_test, weight_test))
+
+    #clf = RandomForestRegressor(n_estimators=10, max_features='sqrt', n_jobs=-1)
+    #clf.fit(X, y, weight)
+
+    #from sklearn.externals import joblib
+    #joblib.dump(clf, 'models/random_forest_8-12_like.pkl') 
+
+def gbrt_regressor(X, y, weight):
+    from sklearn.ensemble import GradientBoostingRegressor
+    from sklearn import cross_validation
+    
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.4, random_state=0)
+    clf = GradientBoostingRegressor(n_estimators=100, max_features='sqrt')
+    clf.fit(X_train, y_train, weight_train)
+    print(clf.score(X_test, y_test, weight_test))
+
+    #clf = RandomForestRegressor(n_estimators=10, max_features='sqrt', n_jobs=-1)
+    #clf.fit(X, y, weight)
+
+    #from sklearn.externals import joblib
+    #joblib.dump(clf, 'models/random_forest_8-12_like.pkl') 
+
+def random_forest_regressor2(X, y, weight):
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn import cross_validation
+
+    '''
     X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
         X, y, weight, test_size=0.1, random_state=0)
     clf = RandomForestRegressor(n_estimators=10, max_features='sqrt', n_jobs=-1)
     clf.fit(X_train, y_train, weight_train)
-    print(clf.score(X_test, y_test, weight_test))
+    print(clf.score(X_test, y_test, weight_test))'''
+
+    clf = RandomForestRegressor(n_estimators=10, max_features='sqrt', n_jobs=-1)
+    clf.fit(X, y, weight)
 
     from sklearn.externals import joblib
-    joblib.dump(clf, 'models/random_forest_like2.pkl') 
+    joblib.dump(clf, 'models/random_forest_like_all.pkl') 
 
 def svr(X, y, weight):
     """SVR 
@@ -93,9 +166,9 @@ def init_predict():
 
 
     combined_list = [
-        sp.sparse.csc_matrix(sio.loadmat('weibo_predict_data_cut_uid_ave.mat')['X']),
-        sp.sparse.csc_matrix(sio.loadmat('weibo_predict_data_cut_X_length.mat')['X']),
-        sio.loadmat('weibo_predict_data_cut_Xl.mat')['X']
+        sp.sparse.csc_matrix(sio.loadmat('12-cut_uid_ave.mat')['X']),
+        sp.sparse.csc_matrix(sio.loadmat('12-cut_X_length.mat')['X']),
+        sio.loadmat('12-cut_Xf.mat')['X']
     ]
 
     X = sp.sparse.hstack(combined_list)
@@ -110,11 +183,29 @@ def random_forest_predictor(X):
     from sklearn.externals import joblib
     import scipy.io as sio
 
-    clf = joblib.load('models/random_forest_like2.pkl') 
+    clf = joblib.load('models/random_forest_8-12_forward.pkl') 
     y = clf.predict(X)
     print(y.shape)
 
-    sio.savemat('weibo_predict_data-like.mat', {'y':y})
+    sio.savemat('12-forward.mat', {'y':y})
+
+
+def log_reg_test(X, y, weight):
+    from sklearn.linear_model import LogisticRegression
+    from sklearn import cross_validation
+    from sklearn.metrics import confusion_matrix
+
+    weights = {0:1, 1:3, 2:7, 3:14, 4:30, 5:70, 6:101}
+
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.2, random_state=0)
+    clf = LogisticRegression(class_weight=weights, C=0.01, solver='liblinear',max_iter=20)
+    #clf = LogisticRegression( max_iter=100)
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+
+    print(confusion_matrix(y_test, y_pred))
 
 def predict(filein, filename):
     # load predict data
@@ -141,10 +232,9 @@ def predict(filein, filename):
     # load file
     i = 0
     for line in filein:
-        #(uid, mid, day, forward_count,
-        #comment_count, like_count, content) = json.loads(line)
-        (uid, mid, day, content) = json.loads(line)
-
+        (uid, mid, day, forward_count,
+        comment_count, like_count, content) = json.loads(line)
+        #(uid, mid, day, content) = json.loads(line)
         #print(predict_forward[i], predict_comment[i], predict_like[i])
 
         predict_forward_cut = process(predict_forward[i])
@@ -162,24 +252,17 @@ def main():
     import time
     t0 = time.time()
     
-    '''
-    X, y, weight= init()
-    
-    X = X[:1000000]
-    y = y[:1000000]
-    weight = weight[:1000000]
+    X, y, weight = init('f')
 
-    print(X.shape)
-
-    #linear_regressor(X, y, weight)
-    random_forest_regressor(X, y, weight)
-    '''
-
+    #print(X.shape)
+    log_reg_test(X[:200000], y[:200000], weight[:200000])
+    #X, y, weight = init2()
+    #random_forest_regressor2(X, y, weight)
     #X = init_predict()
     #random_forest_predictor(X)
     
-    filein = open('weibo_predict_data_cut.txt', encoding='utf-8')
-    predict(filein, 'weibo_predict_data')
+    #filein = open('12-cut.txt', encoding='utf-8')
+    #predict(filein, '12')
     
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
