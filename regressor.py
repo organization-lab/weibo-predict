@@ -29,7 +29,7 @@ def init(mode):
     X = sp.sparse.hstack(combined_list)
 
     if mode == 'f':
-        y = sio.loadmat('08-12-cut_yC_forward.mat')['y'] #
+        y = sio.loadmat('08-12-cut_y_forward.mat')['y'] #
     elif mode == 'c':
         y = sio.loadmat('08-12-cut_y_comment.mat')['y'] 
     else:
@@ -166,9 +166,9 @@ def init_predict():
 
 
     combined_list = [
-        sp.sparse.csc_matrix(sio.loadmat('12-cut_uid_ave.mat')['X']),
-        sp.sparse.csc_matrix(sio.loadmat('12-cut_X_length.mat')['X']),
-        sio.loadmat('12-cut_Xf.mat')['X']
+        sp.sparse.csc_matrix(sio.loadmat('07-cut_uid_ave.mat')['X']),
+        sp.sparse.csc_matrix(sio.loadmat('07-cut_X_length.mat')['X']),
+        sio.loadmat('07-cut_Xf.mat')['X']
     ]
 
     X = sp.sparse.hstack(combined_list)
@@ -189,7 +189,6 @@ def random_forest_predictor(X):
 
     sio.savemat('12-forward.mat', {'y':y})
 
-
 def log_reg_test(X, y, weight):
     from sklearn.linear_model import LogisticRegression
     from sklearn import cross_validation
@@ -207,14 +206,89 @@ def log_reg_test(X, y, weight):
 
     print(confusion_matrix(y_test, y_pred))
 
+def naive_bayes(X, y, weight):
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn import cross_validation
+    from sklearn.metrics import confusion_matrix
+
+    weights = {0:1, 1:3, 2:7, 3:14, 4:30, 5:70, 6:101}
+
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.2, random_state=0)
+    clf = GaussianNB()
+    #clf = LogisticRegression( max_iter=100)
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+
+    print(confusion_matrix(y_test, y_pred))
+
+def rfc(X, y, weight):
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn import cross_validation
+    from sklearn.metrics import confusion_matrix
+
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.2, random_state=0)
+    clf = RandomForestClassifier(n_estimators=20, max_features='sqrt', n_jobs=-1)
+    clf.fit(X_train, y_train, weight_train)
+    y_pred = clf.predict(X_test)
+
+    print(confusion_matrix(y_test, y_pred))
+
+def sgd(X_train, y_train, weight, X_test):
+    from sklearn.linear_model import SGDRegressor
+    from sklearn import cross_validation
+    from sklearn.metrics import confusion_matrix
+    from sklearn.preprocessing import StandardScaler
+
+
+    clf = SGDRegressor(loss="epsilon_insensitive", n_iter=500, penalty="l2")
+    #clf = LogisticRegression( max_iter=100)
+
+    scaler = StandardScaler(with_mean=False)
+    scaler.fit(X_train)  # Don't cheat - fit only on training data
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)  # apply same transformation to test data
+
+    clf.fit(X_train, y_train, sample_weight=weight)
+
+    y_pred = clf.predict(X_test)
+
+    from sklearn.externals import joblib
+    import scipy.io as sio
+    joblib.dump(clf, 'models/sgd_like.pkl') 
+    sio.savemat('07_y_forward.mat', {'y':y_pred})
+
+def sgd_test(X, y, weight):
+    from sklearn.linear_model import SGDClassifier
+    from sklearn import cross_validation
+    from sklearn.metrics import confusion_matrix
+    from sklearn.preprocessing import StandardScaler
+
+    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+        X, y, weight, test_size=0.2, random_state=0)
+    clf = SGDClassifier(loss="hinge", n_iter=20, n_jobs=-1, penalty="l2")
+    #clf = LogisticRegression( max_iter=100)
+
+    scaler = StandardScaler(with_mean=False)
+    scaler.fit(X_train)  # Don't cheat - fit only on training data
+    X_train = scaler.transform(X_train)
+    X_test = scaler.transform(X_test)  # apply same transformation to test data
+
+    clf.fit(X_train, y_train, sample_weight=weight_train)
+    y_pred = clf.predict(X_test)
+
+    print(confusion_matrix(y_test, y_pred))
+
 def predict(filein, filename):
     # load predict data
     import scipy.io as sio
     import json
 
-    predict_forward = sio.loadmat(filename + '-forward.mat')['y']
-    predict_comment = sio.loadmat(filename + '-comment.mat')['y']
-    predict_like = sio.loadmat(filename + '-like.mat')['y']
+    predict_forward = sio.loadmat(filename + '_forward.mat')['y']
+    predict_comment = sio.loadmat(filename + '_comment.mat')['y']
+    predict_like = sio.loadmat(filename + '_like.mat')['y']
 
     predict_forward = predict_forward.ravel()
     predict_comment = predict_comment.ravel()
@@ -251,18 +325,22 @@ def predict(filein, filename):
 def main():
     import time
     t0 = time.time()
-    
+    '''
     X, y, weight = init('f')
-
+    X = X.tocsr()
+    print(type(X))
+    X_test = init_predict()
+    X_test = X_test.tocsr()
     #print(X.shape)
-    log_reg_test(X[:200000], y[:200000], weight[:200000])
+    sgd(X, y, weight, X_test)'''
+    #rfc(X[:500000], y[:500000], weight[:500000])
     #X, y, weight = init2()
     #random_forest_regressor2(X, y, weight)
-    #X = init_predict()
+
     #random_forest_predictor(X)
     
-    #filein = open('12-cut.txt', encoding='utf-8')
-    #predict(filein, '12')
+    filein = open('07-cut.txt', encoding='utf-8')
+    predict(filein, '07_y')
     
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
