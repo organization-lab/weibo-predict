@@ -88,7 +88,7 @@ def categorize_weibo(filein):
     """
 
     t = re.compile('\t')
-    time_sep = re.compile('-')
+    #time_sep = re.compile('-')
 
     #init io
     output_forward = []
@@ -101,7 +101,7 @@ def categorize_weibo(filein):
 
     for line in filein: # write number of users as demand in num_user   
         (uid, mid, time, forward_count,
-        comment_count, like_count, content) = json.loads(line)
+        comment_count, like_count, length, content) = json.loads(line)
 
         forward_class = classify(forward_count)
         comment_class = classify(comment_count)
@@ -114,10 +114,11 @@ def categorize_weibo(filein):
 def classify(number):
     """分成七类, 防止单个类别样本量太少, 不够总结 feature
 
+    这七类的加权平均数相当(in early training set)
     """
     if number == 0:
         return 0
-    elif number < 6: 
+    elif number < 5: 
         return 1
     elif number < 11:
         return 2
@@ -247,34 +248,37 @@ def post_length(filein, filein_name):
     # io to file
     sio.savemat(filein_name[:-4] +'_X_length.mat', {'X':length})
 
-def init_dict(filein, fileout):
+def init_dict(filein_name):
     """从已有的分词文件建立dict
 
-    目前删去了只有一次的词。
+    目前删去了只有一次的词。 对于 class 0 不妨用 >5
     """
+    filein = open(filein_name, encoding='utf-8')
+    fileout = open(filein_name[:-4]+'dict5.txt', 'w', encoding='utf-8')
+
     d = {}
-    t = re.compile(' ')
+
     for line in filein:
         (uid, mid, time, forward_count,
-            comment_count, like_count, content) = json.loads(line)
-        words = t.split(content)
+            comment_count, like_count, length, content) = json.loads(line)
 
         words_remove_dup = [] # remove duplicates
-        for i in words:
+        for i in content:
             if i not in words_remove_dup:
                 words_remove_dup.append(i)
-
         for word in words_remove_dup:
             if word in d:
                 d[word] += 1
             else:
                 d[word] = 1
+
     d1 = {}
     for key in d:
-        if d[key] >= 2:
+        if d[key] >= 5:
             d1[key] = d[key]
 
     d1 = sorted(d1.items(), key=lambda d1:d1[1], reverse=True)
+    print(filein_name, len(d1))
 
     fileout.write(json.dumps(d1))
 
@@ -304,7 +308,7 @@ def cal_freq():
     for j in types:
         for i in range(0,7):
             print(len(words_list))
-            filein = open(j + str(i) +'-dict.txt', encoding='utf-8')
+            filein = open(j + str(i) +'dict.txt', encoding='utf-8')
             list_dict = json.loads(filein.readline()) # list_dict 即为词典列表
             num_post = list_dict[0][1] # \n 的数量, 与微博数量一致
             print(len(list_dict))
@@ -335,6 +339,27 @@ def cal_freq():
     fileout = open('dict-freq.txt', 'w', encoding='utf-8')
     fileout.write(json.dumps(dict_freq))
 
+def dict_all():
+    types = ['forward','comment','like']
+    for j in types:
+        fdict = open(j +'_dict_all.txt', 'w', encoding='utf-8')
+        dict_all = {}
+        #distribute = [[],[],[],[],[],[],[]]
+        for i in range(6,-1, -1):
+            f = open(j + str(i) +'dict.txt', encoding='utf-8')
+            dict_list = json.loads(f.readline())
+            k = 0
+            for key, count in dict_list:
+                if key not in dict_all:
+                    dict_all[key] = count
+                    #distribute[i].append()
+                    k += 1
+                if k == 10000:
+                    break
+            print(len(dict_all))
+            
+        fdict.write(json.dumps(dict_all))
+
 def get_features():
     """ 从词频字典提取 feature
 
@@ -347,17 +372,17 @@ def get_features():
     dict_freq = json.loads(f.readline())
     print(len(dict_freq))
     
-
     types = ['forward','comment','like']
 
-    list_features_f = [{},{},{},{},{},{},{}]
-    list_features_c = [{},{},{},{},{},{},{}]
-    list_features_l = [{},{},{},{},{},{},{}]
+    list_features_f = [[],[],[],[],[],[],[]]
+    #list_features_c = [{},{},{},{},{},{},{}]
+    #list_features_l = [{},{},{},{},{},{},{}]
 
     for key in dict_freq:
         freq_forward = dict_freq[key][0:6]
-        index, num = freq_forward.index(max(freq_forward)), np.mean(freq_forward) * np.std(freq_forward)
-        list_features_f[index][key] = num
+        if np.mean(freq_forward) != 0:
+            index, high, num = freq_forward.index(max(freq_forward)), max(freq_forward), np.std(freq_forward)/np.mean(freq_forward)
+            list_features_f[index].append([key, high, num])  
         '''
         freq_comment = dict_freq[key][7:13]
         index, num = freq_comment.index(max(freq_comment)), np.mean(freq_comment) * np.std(freq_comment)
@@ -367,12 +392,16 @@ def get_features():
         index, num = freq_like.index(max(freq_like)), np.mean(freq_like) * np.std(freq_forward)
         list_features_l[index][key] = num
         '''
-    fileout_f = open('20150913features-forward-2000.txt', 'w', encoding='utf-8')
-    fileout_c = open('20150913features-comment-2000.txt', 'w', encoding='utf-8')
-    fileout_l = open('20150913features-like-2000.txt', 'w', encoding='utf-8')
-    write_features(fileout_f, list_features_f)
-    write_features(fileout_c, list_features_c)
-    write_features(fileout_l, list_features_l)
+    for s in list_features_f:
+        print(len(s))
+        s.sort()
+    fileout_f = open('20150917forward-dict.txt', 'w', encoding='utf-8')
+    fileout_f.write(json.dumps(list_features_f))
+    #fileout_c = open('20150917comment-dict.txt', 'w', encoding='utf-8')
+    #fileout_l = open('20150917like-dict.txt', 'w', encoding='utf-8')
+    #write_features(fileout_f, list_features_f)
+    #write_features(fileout_c, list_features_c)
+    #write_features(fileout_l, list_features_l)
 
 def write_features(fileout, list_features):
     """ 输出 features 为 json 格式列表文件
@@ -437,9 +466,9 @@ def cal_features(filein, filein_name):
     temp = []
 
     from scipy import sparse
-    Xf = sparse.dok_matrix((num_lines, dict_length)) #使用稀疏矩阵, 减少空间占用 
-    Xc = sparse.dok_matrix((num_lines, dict_length))
-    Xl = sparse.dok_matrix((num_lines, dict_length))
+    Xf = sparse.csr_matrix((num_lines, dict_length)) #使用稀疏矩阵, 减少空间占用 
+    Xc = sparse.csr_matrix((num_lines, dict_length))
+    Xl = sparse.csr_matrix((num_lines, dict_length))
 
     linenum = 0
 
@@ -492,7 +521,12 @@ def main():
     import time
     t0 = time.time()
     #sep_file(open('08-12-cut.txt', encoding='utf-8'))
-    y_class(open('08-12-cut.txt', encoding='utf-8'),'08-12-cut.txt')
+    #filein = open('train_cut.txt', encoding='utf-8')
+    #categorize_weibo(filein)
+    dict_all()
+
+
+    #get_features()
     #loaders('07-cut.txt')
     #cal_features(filein, 'weibo_predict_data_cut.txt')
     #uid_average(filein, '12-cut.txt')
