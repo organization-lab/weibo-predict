@@ -16,28 +16,32 @@ def get_data_and_write(filein):
     t = re.compile('\t')
     time_sep = re.compile('-')
 
-    fileout02 = open('02_norm.txt', 'w', encoding='utf-8')
+    #fileout02 = open('02_norm.txt', 'w', encoding='utf-8')
     #fileout03 = open('03-07.txt', 'w', encoding='utf-8')
-    fileout_cut = open('train_cut.txt', 'w', encoding='utf-8')
+    fileout_cut = open('predict_cut.txt', 'w', encoding='utf-8')
 
     i = 0
     for line in filein: # write number of users as demand in num_user   
-        (mid, uid, time, forward_count,
-            comment_count, like_count, content) = t.split(line)
+        #(mid, uid, time, forward_count,
+        #    comment_count, like_count, content) = t.split(line)
+        (uid, mid, time, content) = t.split(line)
+        '''
         yyyy, mm, dd = time_sep.split(time)
         forward_count = int(forward_count)
         comment_count = int(comment_count)
-        like_count = int(like_count)
+        like_count = int(like_count)'''
 
         cut_list = jieba.lcut(content)
         length = len(content)
         #print(cut_list)
         #print(uid, mid, time, forward_count, comment_count, like_count)
-        output = [mid, uid, time, forward_count,
-            comment_count, like_count, length, cut_list]
+        #output = [mid, uid, time, forward_count,
+        #    comment_count, like_count, length, cut_list]
+
+        output = [mid, uid, time, length, cut_list]
         fileout_cut.write(json.dumps(output) + '\n')
-        if mm == '02':
-            fileout02.write(line)
+        #if mm == '02':
+        #    fileout02.write(line)
         i += 1
 
         if i % 50000 == 0:
@@ -276,10 +280,10 @@ def main():
     import time
     t0 = time.time()
     
-    #filein = open('weibo_train_data.txt', encoding='utf-8')
+    filein = open('weibo_predict_data_new.txt', encoding='utf-8')
     #fileout = open('weibo_train_uid.txt', 'w', encoding='utf-8')
-    #get_data_and_write(filein)
-    predict_uid_ave()
+    get_data_and_write(filein)
+    #predict_uid_ave()
 
     #filein = open('weibo_predict_data.txt', encoding='utf-8')
     #fileout = open('weibo_predict_uid.txt', 'w', encoding='utf-8')

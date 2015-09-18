@@ -12,30 +12,35 @@ def init(mode):
     """
     import scipy.io as sio
     import scipy as sp
+    from sklearn.feature_extraction.text import TfidfTransformer
+    from sklearn.preprocessing import PolynomialFeatures
 
+    # adding uid average data and poly
+    uid_ave = sio.loadmat('train_cut_uid_ave.mat')['X']
+    poly = PolynomialFeatures(degree=2)
+    poly_uid_ave = poly.fit_transform(uid_ave)
+    combined_list = [sp.sparse.csc_matrix(poly_uid_ave)]
 
-    combined_list = [
-        sp.sparse.csc_matrix(sio.loadmat('08-12-cut_uid_ave.mat')['X']),
-        sp.sparse.csc_matrix(sio.loadmat('08-12-cut_X_length.mat')['X']),
-
-    ]
     if mode == 'f':
-        combined_list.append(sio.loadmat('08-12-cut_Xf.mat')['X'])
+        X_words = sio.loadmat('train_cut_Xf.mat')['X']
     elif mode == 'c':
-        combined_list.append(sio.loadmat('08-12-cut_Xc.mat')['X'])
+        X_words = sio.loadmat('train_cut_Xc.mat')['X']
     else:
-        combined_list.append(sio.loadmat('08-12-cut_Xl.mat')['X'])
+        X_words = sio.loadmat('train_cut_Xl.mat')['X']
+    #transformer = TfidfTransformer()
+    #X_tfidf = transformer.fit_transform(X_words)
+    combined_list.append(X_words)
 
     X = sp.sparse.hstack(combined_list)
 
     if mode == 'f':
-        y = sio.loadmat('08-12-cut_y_forward.mat')['y'] #
+        y = sio.loadmat('train_cut_y_forward.mat')['y'] #temp for classify
     elif mode == 'c':
-        y = sio.loadmat('08-12-cut_y_comment.mat')['y'] 
+        y = sio.loadmat('train_cut_y_comment.mat')['y'] 
     else:
-        y = sio.loadmat('08-12-cut_y_like.mat')['y']
+        y = sio.loadmat('train_cut_y_like.mat')['y']
 
-    weight = sio.loadmat('08-12-cut_weight.mat')['weight']
+    weight = sio.loadmat('train_cut_weight.mat')['weight']
 
     print(mode, X.shape, y.ravel().shape)
     return X, y.ravel(), weight.ravel()
@@ -155,7 +160,7 @@ def svr(X, y, weight):
     clf.fit(X, y)
     print(clf.score(X, y))
 
-def init_predict():
+def init_predict(mode):
     """ 整理为用于预测的 X
 
     i: features
@@ -163,13 +168,23 @@ def init_predict():
     """
     import scipy.io as sio
     import scipy as sp
+    from sklearn.preprocessing import PolynomialFeatures
 
+    uid_ave = sio.loadmat('predict_cut_uid_ave.mat')['X']
+    poly = PolynomialFeatures(degree=2)
+    poly_uid_ave = poly.fit_transform(uid_ave)
+    combined_list = [sp.sparse.csc_matrix(poly_uid_ave)]
 
-    combined_list = [
-        sp.sparse.csc_matrix(sio.loadmat('07-cut_uid_ave.mat')['X']),
-        sp.sparse.csc_matrix(sio.loadmat('07-cut_X_length.mat')['X']),
-        sio.loadmat('07-cut_Xf.mat')['X']
-    ]
+    if mode == 'f':
+        X_words = sio.loadmat('predict_cut_Xf.mat')['X']
+    elif mode == 'c':
+        X_words = sio.loadmat('predict_cut_Xc.mat')['X']
+    else:
+        X_words = sio.loadmat('predict_cut_Xl.mat')['X']
+    #transformer = TfidfTransformer()
+    #X_tfidf = transformer.fit_transform(X_words)
+
+    combined_list.append(X_words)
 
     X = sp.sparse.hstack(combined_list)
 
@@ -236,50 +251,64 @@ def rfc(X, y, weight):
 
     print(confusion_matrix(y_test, y_pred))
 
-def sgd(X_train, y_train, weight, X_test):
+def sgd(X, y, weight, X_test=False):
     from sklearn.linear_model import SGDRegressor
     from sklearn import cross_validation
     from sklearn.metrics import confusion_matrix
     from sklearn.preprocessing import StandardScaler
 
-
-    clf = SGDRegressor(loss="epsilon_insensitive", n_iter=500, penalty="l2")
+    #X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+    #        X, y, weight, test_size=0.2, random_state=0)
+    clf = SGDRegressor(loss="huber", n_iter=100, penalty="l1")
     #clf = LogisticRegression( max_iter=100)
+
+    X_train = X
+    y_train = y
 
     scaler = StandardScaler(with_mean=False)
     scaler.fit(X_train)  # Don't cheat - fit only on training data
     X_train = scaler.transform(X_train)
+
     X_test = scaler.transform(X_test)  # apply same transformation to test data
 
     clf.fit(X_train, y_train, sample_weight=weight)
 
-    y_pred = clf.predict(X_test)
+    print(clf.score(X_train,y_train,weight))
 
+    y_pred = clf.predict(X_test)
+    
     from sklearn.externals import joblib
     import scipy.io as sio
-    joblib.dump(clf, 'models/sgd_like.pkl') 
-    sio.savemat('07_y_forward.mat', {'y':y_pred})
+    joblib.dump(clf, 'models/sgd_.pkl') 
+    sio.savemat('predict_y_forward.mat', {'y':y_pred})
 
-def sgd_test(X, y, weight):
+def sgc_test(X, y, weight):
     from sklearn.linear_model import SGDClassifier
     from sklearn import cross_validation
     from sklearn.metrics import confusion_matrix
     from sklearn.preprocessing import StandardScaler
 
-    X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
-        X, y, weight, test_size=0.2, random_state=0)
-    clf = SGDClassifier(loss="hinge", n_iter=20, n_jobs=-1, penalty="l2")
-    #clf = LogisticRegression( max_iter=100)
+    for i in range(0,1):
+        X_train, X_test, y_train, y_test, weight_train, weight_test = cross_validation.train_test_split(
+            X, y, weight, test_size=0.2, random_state=0)
+        clf = SGDClassifier(loss="hinge", n_iter=100, n_jobs=-1, penalty="l2")
+        #clf = LogisticRegression( max_iter=100)
 
-    scaler = StandardScaler(with_mean=False)
-    scaler.fit(X_train)  # Don't cheat - fit only on training data
-    X_train = scaler.transform(X_train)
-    X_test = scaler.transform(X_test)  # apply same transformation to test data
+        scaler = StandardScaler(with_mean=False)
+        scaler.fit(X_train)  # Don't cheat - fit only on training data
+        X_train = scaler.transform(X_train)
+        X_test = scaler.transform(X_test)  # apply same transformation to test data
 
-    clf.fit(X_train, y_train, sample_weight=weight_train)
-    y_pred = clf.predict(X_test)
+        clf.fit(X_train, y_train, sample_weight=weight_train)
 
-    print(confusion_matrix(y_test, y_pred))
+        y_pred = clf.predict(X_train)
+        #print(confusion_matrix(y_train, y_pred))
+        print(clf.score(X_train,y_train,weight_train))
+
+        y_pred = clf.predict(X_test)
+
+        #print(confusion_matrix(y_test, y_pred))
+        print(clf.score(X_test,y_test,weight_test))
 
 def predict(filein, filename):
     # load predict data
@@ -306,9 +335,9 @@ def predict(filein, filename):
     # load file
     i = 0
     for line in filein:
-        (uid, mid, day, forward_count,
-        comment_count, like_count, content) = json.loads(line)
-        #(uid, mid, day, content) = json.loads(line)
+        #(uid, mid, day, forward_count,
+        #comment_count, like_count, content) = json.loads(line)
+        (mid, uid, day, length, content) = json.loads(line)
         #print(predict_forward[i], predict_comment[i], predict_like[i])
 
         predict_forward_cut = process(predict_forward[i])
@@ -327,20 +356,26 @@ def main():
     t0 = time.time()
     '''
     X, y, weight = init('f')
+    X = X.tocsc()[:, :]
     X = X.tocsr()
-    print(type(X))
-    X_test = init_predict()
+    print(X.shape)
+    #print(type(X))
+
+    X_test = init_predict('f')
+    X_test = X_test.tocsc()[:, :]
     X_test = X_test.tocsr()
-    #print(X.shape)
-    sgd(X, y, weight, X_test)'''
+    print(X_test.shape)
+
+    sgd(X, y, weight, X_test)
+    '''
     #rfc(X[:500000], y[:500000], weight[:500000])
     #X, y, weight = init2()
     #random_forest_regressor2(X, y, weight)
 
     #random_forest_predictor(X)
     
-    filein = open('07-cut.txt', encoding='utf-8')
-    predict(filein, '07_y')
+    filein = open('predict_cut.txt', encoding='utf-8')
+    predict(filein, 'predict_y')
     
     t1 = time.time()
     print('Finished: runtime {}'.format(t1 - t0))
