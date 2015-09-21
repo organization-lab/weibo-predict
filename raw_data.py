@@ -22,9 +22,9 @@ def get_data_and_write(filein):
 
     i = 0
     for line in filein: # write number of users as demand in num_user   
-        #(mid, uid, time, forward_count,
-        #    comment_count, like_count, content) = t.split(line)
-        (uid, mid, time, content) = t.split(line)
+        (mid, uid, time, forward_count,
+            comment_count, like_count, content) = t.split(line) # for normal file
+        #(uid, mid, time, content) = t.split(line) # for test file
         '''
         yyyy, mm, dd = time_sep.split(time)
         forward_count = int(forward_count)
@@ -50,6 +50,7 @@ def get_data_and_write(filein):
     print(i)
     #print(len(uid_dict))
     #print(uid_dict)
+
 
 def predict_uid_ave():
     filein = open('weibo_predict_data_new.txt')
@@ -126,44 +127,35 @@ def uid_compare():
     print(predict_in_train, predict_not_in_train)
     print(post_in_train, post_in_predict)
 
-def init_dict(filein):
+def uid_sort(filein_name):
     """从已有的分词文件建立dict
 
-    目前删去了只有一次的词。
+    目前删去了只有一次的词。 对于 class 0 不妨用 >5
     """
-    d = {}
-    t = re.compile(' ')
+    filein = open(filein_name, encoding='utf-8')
+    fileout = open(filein_name[:-4]+'uid_sorted.txt', 'w', encoding='utf-8')
+
+    d = {} #uid:index
+    #post_list = []
+
+    i = 0
     for line in filein:
-        words = t.split(line)
-        for word in words:
-            if word in d:
-                d[word] += 1
-            else:
-                d[word] = 1
+        (mid, uid, time, forward_count,
+            comment_count, like_count, length, content) = json.loads(line)
+        content = ' '.join(content)
+        string = '\t'.join([mid, uid, time, str(forward_count),
+            str(comment_count), str(like_count), str(length), content])
+        if uid in d:
+            d[uid].append(string)
+        else:
+            d[uid] = [string]
+        i += 1
+        #if i == 100:
+        #    break
 
-    d1 = {}
-    d2 = 0
-    d3 = 0
-    d4 = 0
-    d5 = 0
-    d10 = 0
-    for key in d:
-        if d[key] >= 2:
-            d1[key] = d[key]
-            d2+=1  
-    #print('2,3,4,5,10', d2,d3,d4,d5,d10)
-    d1 = sorted(d1.items(), key=lambda d1:d1[1], reverse=True)
-    fileout = open(filein_name + 'dict.txt', 'w', encoding='utf-8')
-    fileout.write(json.dumps(d1))
-
-def load_dict(filein):
-    list_dict = json.loads(filein.readline())
-    #print(list_dict)
-    for key in list_dict[:10]:
-        print(key[0], key[1])
-    out_list = list_dict[:10000]
-    fileout = open(filein_name + '10000.txt', 'w', encoding='utf-8')
-    fileout.write(json.dumps(out_list))
+    for uid in d:
+        for post in d[uid]:
+            fileout.write(post)
 
 def cal_features(filein):
     """分词并通过已有的字典生成 X,y(real)文件
@@ -280,9 +272,9 @@ def main():
     import time
     t0 = time.time()
     
-    filein = open('weibo_predict_data_new.txt', encoding='utf-8')
+    #filein = open('train_cut.txt', encoding='utf-8')
     #fileout = open('weibo_train_uid.txt', 'w', encoding='utf-8')
-    get_data_and_write(filein)
+    uid_sort('train_cut.txt')
     #predict_uid_ave()
 
     #filein = open('weibo_predict_data.txt', encoding='utf-8')
