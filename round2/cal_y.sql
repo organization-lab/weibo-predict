@@ -1,4 +1,4 @@
-/* calculate y */
+/* calculate y, tested*/
 
 create table 1011_combine_y as 
 select *,
