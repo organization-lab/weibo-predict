@@ -21,6 +21,8 @@
 |blog_time|string|发微博时间|
 |blog|string|博文内容|
 
+共 110541018 条记录
+
 ### 2. 粉丝数据: `weibo_fans_data_train`
 
 已整理为fans_count:
@@ -37,9 +39,11 @@ forward_count/comment_count/like_count/all_count:
 - mid: string
 - ...(forward/comment/like)_count: bigint
 
-### 4. 需要预测的博文数据 `weibo_blog_data_test `
+### 4. 需要预测的博文数据 `weibo_blog_data_test`
 
 uid, mid, blog_time, blog
+
+共 9644805 条记录
 
 ### 5. 输出表 `weibo_rd_2_submit`
 
@@ -82,4 +86,9 @@ Angrew Ng 在课程中反复提到: engineering time 是最宝贵的财富, 一�
 - uid level: average forward / comment / like
 - post level: dict word cut / length
 
+1011_combine_y:
+
+uid, mid, blog, forward, comment, like, sum, y
+
 ### 基本分词与预测
+
