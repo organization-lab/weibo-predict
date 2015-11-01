@@ -25,3 +25,4 @@ CREATE TABLE total_count as
     SELECT mid, COUNT(*) AS count_all 
     FROM tianchi_weibo.weibo_action_data_train 
     group by mid;
+

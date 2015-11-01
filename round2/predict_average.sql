@@ -9,15 +9,31 @@ method:
 
 */
 
-select avg(count_all) from 1011_combine_y_1000 group by uid
+/* 1.1 cal total count by mid, from weibo action data */
+DROP TABLE IF EXISTS total_count ;
+CREATE TABLE total_count as 
+    SELECT mid, COUNT(*) AS count_all 
+    FROM tianchi_weibo.weibo_action_data_train 
+    group by mid;
 
-/* calculate uid average and count by sql */
-create table 1011_uid_average as 
+/* 1.2 left join uid and mid and count */
+drop table if exists 1101_left_join;
+create table 1101_left_join as 
+select t1.mid AS mid,
+	t1.uid AS uid,
+	t2.count_all AS action_sum 
+from weibo_blog_data_train t1 LEFT OUTER JOIN total_count t2 
+ON t1.mid=t2.mid
+
+/* fill blank (用缺失值填充, 算法平台)*/
+
+/* 1.4 calculate uid average and count by sql */
+create table 1101_uid_average as 
 select 
     uid as uid, 
-    avg(count_all) as avg_uid,
+    avg(action_sum) as avg_uid,
     count(*) as count_post 
-from 1011_combine_y group by uid;
+from 1101_left_join_filled group by uid;
 
 /* predict uid class */
 create table 1011_y_uid_ave as 
@@ -29,14 +45,46 @@ select *,
 		 else 1 end as y_pred_average
 from 1011_uid_average ;
 
-/* left outer join from 算法平台, not tested */
-create table pai_temp_18094_152840_1 as 
+/* left outer join from 算法平台 */
+drop table if exists 1101_left_join;
+create table 1101_left_join as 
 select t1.mid AS mid,
 	t1.uid AS uid,
-	t2.y_pred_average AS action_sum 
-from weibo_blog_data_test t1 LEFT OUTER JOIN 1011_y_uid_ave t2 
-ON t1.uid=t2.uid
+	t2.count_all AS action_sum 
+from weibo_blog_data_train t1 LEFT OUTER JOIN total_count t2 
+ON t1.mid=t2.mid
 
 
 /* refresh final table column name */
 ALTER TABLE weibo_rd_2_submit CHANGE COLUMN y_pred_average RENAME TO action_sum;
+
+/* 设计规则 */
+
+DROP TABLE IF EXISTS weibo_rd_2_submit_1101;
+
+CREATE TABLE weibo_rd_2_submit_1101
+AS
+SELECT *
+	, CASE 
+		WHEN avg_uid > 50 THEN 101
+		WHEN avg_uid > 20 THEN 51
+		WHEN avg_uid > 5 THEN 11
+		WHEN avg_uid > 1 THEN 6
+		ELSE 0
+	END AS action_sum
+FROM 1101_predict;
+
+select * from weibo_rd_2_submit_1101;
+
+
+/* 去掉辅助列(avg_uid), 输出正式文件 weibo_rd_2_submit */
+DROP TABLE IF EXISTS weibo_rd_2_submit;
+
+CREATE TABLE weibo_rd_2_submit
+AS
+SELECT uid as uid,
+mid as mid,
+action_sum as action_sum
+FROM weibo_rd_2_submit_1101;
+
+select * from weibo_rd_2_submit;

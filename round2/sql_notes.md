@@ -8,6 +8,7 @@
 - 后续: 整体框架
   - feature 列表与实现思路
   - 基本分词与预测
+- 201511 final version
 
 ## 基本信息
 
@@ -34,7 +35,7 @@
 
 已整理为 total forward/comment/count
 
-forward_count/comment_count/like_count/all_count:
+forward\_count/comment\_count/like\_count/all\_count:
 
 - mid: string
 - ...(forward/comment/like)_count: bigint
@@ -86,9 +87,60 @@ Angrew Ng 在课程中反复提到: engineering time 是最宝贵的财富, 一�
 - uid level: average forward / comment / like
 - post level: dict word cut / length
 
-1011_combine_y:
+1011\_combine\_y:
 
 uid, mid, blog, forward, comment, like, sum, y
 
 ### 基本分词与预测
 
+## 20151101 final version
+
+摘要: 由于前期学习和找工作太忙, 天池属于弃坑状态, (不会写 JAVA 是一个安慰自己的理由). 不过进入最后阶段, 在周日晚上闲来写几行娱乐一下.
+
+发现了第二赛季切换数据前的问题: 预测的是 action_sum 而非档位, 所以当时用1-5预测档位必然都被归到0档了...[Reference](http://bbs.aliyun.com/read/259533.html?spm=5176.bbsl254.0.0.Ax4a32)
+
+uid average: 
+
+1. 用 action 计算 mid count; `total_count`
+2. left join 到 uid 填充缺失值为0; `1101_left_join_filled`
+3. cal average: `1101_uid_average`
+4. 设计规则预测`weibo_rd_2_submit_1101`
+5. 去掉辅助列(avg_uid), 输出正式文件`weibo_rd_2_submit`
+
+### 统计各类微博与用户 count
+`1101_stats`:
+label, label_count
+1,106921008
+2,1446189
+3,1499997
+4,301801
+5,372023
+
+`1101_stats_uid_ave`:
+三零 -1,1376142
+\>0,464491
+1,112062
+5,7210
+10,2797
+20,1705
+50,617
+100,658
+
+设计规则:
+
+1. uid_ave <= 1, predict 0
+2. uid_ave > 1, predict 6 (考虑到得分是十倍, 因此有10%的是下一档就值得预测为下一档)
+3. uid_ave > 5, predict 11
+4. uid_ave > 20, predict 51
+5. uid_ave > 50, predict 101
+(严格说来这个方法需要用一个测试集来验证, 进行 grid search 是正道...)
+
+`weibo_rd_2_submit_1101`
+
+mid, uid, avg_uid, action_sum
+
+`weibo_rd_2_submit`
+
+### todo
+
+采用部分训练集(其实可以使用全部训练集, 这里暂时不用考虑过拟合问题)计算正确率, 进行 grid search 寻找最佳规则参数. (目标 top 50)
