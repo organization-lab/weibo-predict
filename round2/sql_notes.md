@@ -137,10 +137,24 @@ label, label_count
 
 `weibo_rd_2_submit_1101`
 
-mid, uid, avg_uid, action_sum
+mid, uid, avg\_uid, action\_sum
 
 `weibo_rd_2_submit`
 
 ### todo
 
 采用部分训练集(其实可以使用全部训练集, 这里暂时不用考虑过拟合问题)计算正确率, 进行 grid search 寻找最佳规则参数. (目标 top 50)
+
+method: 每次调单个界限先逼近一个近似值.
+
+1. 1 5 20 50
+2. 1 5 20 65
+3. 1 5 20 40
+4. 25
+5. 15
+6. 7
+7. 3
+8. 2
+9. 0.5
+
+55/30/3/2 0.756(training set)
