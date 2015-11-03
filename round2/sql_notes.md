@@ -158,3 +158,15 @@ method: 每次调单个界限先逼近一个近似值.
 9. 0.5
 
 55/30/3/2 0.756(training set)
+
+
+### model: random forest
+
+filtered data
+1 248840; 2 33680 ; 3 174622; 4 70215; 5 172643
+
+优化后的 RF 在CV 集表现与 sql rule 相当
+
+all uid data: `1103_uid_average`
+
+如何整理两部分数据? 从 confusion matrix 入手分析
