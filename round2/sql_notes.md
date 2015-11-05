@@ -170,3 +170,95 @@ filtered data
 all uid data: `1103_uid_average`
 
 如何整理两部分数据? 从 confusion matrix 入手分析
+
+`1103_rf_test_4`, rf cv
+`1103_cv_baseline`, sql cv
+`1103_test_rf`, test rf 
+`1104_rf_test_4`, cv rf combined
+
+prediction_result, y_sql
+
+```
+DROP TABLE IF EXISTS 1104_combine_cv;
+
+CREATE TABLE 1104_combine_cv
+AS
+SELECT *
+	, CASE 
+		WHEN prediction_result = 5 or y_sql = 5 THEN 5
+		WHEN y_sql = 4 and prediction_result = 3 THEN 4
+		WHEN prediction_result = 3 THEN 3
+		WHEN y_sql = 2 THEN 2
+		ELSE 1
+	END AS y_combine
+FROM 1104_rf_test_4;
+
+select * from 1104_combine_cv;
+```
+
+cv2
+
+DROP TABLE IF EXISTS 1104_combine_cv;
+
+CREATE TABLE 1104_combine_cv
+AS
+SELECT *
+	, CASE 
+		WHEN prediction_result = 5 or y_sql = 5 THEN 5
+		WHEN prediction_result = 3 THEN 3
+		WHEN y_sql = 4 THEN 4
+		WHEN y_sql = 2 THEN 2
+		ELSE 1
+	END AS y_combine
+FROM 1104_rf_test_4;
+
+cv3
+
+DROP TABLE IF EXISTS 1104_combine_cv3;
+
+CREATE TABLE 1104_combine_cv3
+AS
+SELECT *
+	, CASE 
+		WHEN prediction_result = 5 or y_sql = 5 THEN 5
+		WHEN prediction_result = 3 and y_sql = 4 THEN 4
+		WHEN prediction_result = 3 THEN 3
+		WHEN y_sql = 4 THEN 4
+		WHEN y_sql = 2 THEN 2
+		ELSE 1
+	END AS y_combine
+FROM 1104_rf_test_4;
+
+cv4
+
+DROP TABLE IF EXISTS 1104_combine_cv4;
+
+CREATE TABLE 1104_combine_cv4
+AS
+SELECT *
+	, CASE 
+		WHEN prediction_result = 5 or y_sql = 5 THEN 5
+		WHEN prediction_result = 3 and y_sql = 2 THEN 2
+		WHEN prediction_result = 3 THEN 3
+		WHEN y_sql = 4 THEN 4
+		WHEN y_sql = 2 THEN 2
+		ELSE 1
+	END AS y_combine
+FROM 1104_rf_test_4;
+
+总结: 各个结果均不如单独 rf, 今日直接提交 rf
+但担心过拟合等...不过可以先试一下
+
+## final
+
+小结:
+
+理解数据: 统计, 统计, 统计; 可视化, 扎实的理解是前提!
+
+workflow
+
+代码管理
+
+表/数据管理
+
+todo
